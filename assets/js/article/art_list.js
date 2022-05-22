@@ -44,16 +44,16 @@ const initCate = () => {
       var htmlStr = template("tpl-cate", res);
       $("[name=cate_id]").html(htmlStr);
       // 通过 layui 重新渲染表单区域的UI结构
-      form.render();
+      form.render("");
     },
-  });
+  });  
 };
 
 initCate();
-
+// 实现筛选功能
 $("#form-search").on("submit", function (e) {
   e.preventDefault();
-  // 获取表单中选中项的值
+  // 获取表单中选中项的值 [name=cate_id] 属性选择器
   var cate_id = $("[name=cate_id]").val();
   var state = $("[name=state]").val();
   // 为查询参数对象 q 中对应的属性赋值
@@ -81,6 +81,7 @@ function renderPage(total) {
     jump: function (obj, first) {
       // 可以通过 first 的值，来判断是通过哪种方式，触发的 jump 回调
       // 把最新的页码值，赋值到 q 这个查询参数对象中
+      console.log(obj.curr);
       q.pagenum = obj.curr;
       // 把最新的条目数，赋值到 q 这个查询参数对象的 pagesize 属性中
       q.pagesize = obj.limit;

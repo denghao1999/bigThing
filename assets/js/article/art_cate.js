@@ -1,10 +1,14 @@
 // 获取 表格数据
+const layer = layui.layer;
+
 const initArtCateList = () => {
   $.ajax({
     type: "GET",
     url: "/my/article/cates",
     success: (res) => {
       console.log(res);
+      if (res.status !== 0) return layer.msg("文章获取分类失败");
+      layer.msg("文章分类获取成功");
       const htmlStr = template("tpl-table", res);
       $("tbody").empty().html(htmlStr);
     },
@@ -12,8 +16,6 @@ const initArtCateList = () => {
 };
 
 initArtCateList();
-
-const layer = layui.layer;
 
 let indexAdd = null;
 $("#btnAddCate").click(() => {

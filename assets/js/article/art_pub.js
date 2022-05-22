@@ -15,7 +15,7 @@ $(function () {
         var htmlStr = template("tpl-cate", res);
         $("[name=cate_id]").html(htmlStr);
         // 一定要记得调用 form.render() 方法 否则看不到页面的变化
-        form.render();
+        form.render("select");
       },
     });
   };
@@ -108,6 +108,7 @@ $(function () {
         layer.msg("发布文章成功！");
         // 发布文章成功后，跳转到文章列表页面
         location.href = "/article/art_list.html";
+        window.parent.change();
       },
     });
   }
