@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta http-equiv="X-UA-Compatible" content="ie=edge" />
+    <title>贪吃蛇</title>
+    <link rel="stylesheet" href="../assets/lib/bootstrap.css" />
+    <link rel="stylesheet" href="../assets/lib/main.css" />
+    <link rel="stylesheet" href="../assets/css/home/snake.css" />
+  </head>
+
+  <body>
+    <div class="snake-page">
+      <div class="snake-card">
+        <div class="snake-header">
+          <div class="snake-title">
+            <div class="snake-title__main">贪吃蛇</div>
+            <div class="snake-title__sub">方向键 / WASD 移动，空格暂停，R 重开</div>
+          </div>
+
+          <div class="snake-stats" aria-live="polite">
+            <div class="snake-stat">
+              <div class="snake-stat__label">分数</div>
+              <div class="snake-stat__value" id="score">0</div>
+            </div>
+            <div class="snake-stat">
+              <div class="snake-stat__label">最高</div>
+              <div class="snake-stat__value" id="bestScore">0</div>
+            </div>
+            <div class="snake-stat">
+              <div class="snake-stat__label">速度</div>
+              <div class="snake-stat__value" id="speed">1.0x</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="snake-stage">
+          <canvas id="gameCanvas" class="snake-canvas" aria-label="贪吃蛇游戏画布" role="img"></canvas>
+
+          <div class="snake-overlay" id="overlay" hidden>
+            <div class="snake-overlay__panel">
+              <div class="snake-overlay__title" id="overlayTitle">暂停</div>
+              <div class="snake-overlay__desc" id="overlayDesc">按空格继续，或点下面按钮</div>
+              <div class="snake-overlay__actions">
+                <button class="btn btn-primary" id="btnToggle">继续</button>
+                <button class="btn btn-default" id="btnRestart">重新开始</button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="snake-controls">
+          <div class="snake-buttons">
+            <button class="btn btn-primary" id="btnToggle2">开始</button>
+            <button class="btn btn-default" id="btnRestart2">重开</button>
+          </div>
+
+          <div class="snake-dpad" aria-label="移动方向键">
+            <button class="snake-dpad__btn snake-dpad__up" data-dir="up" aria-label="上">▲</button>
+            <button class="snake-dpad__btn snake-dpad__left" data-dir="left" aria-label="左">◀</button>
+            <button class="snake-dpad__btn snake-dpad__right" data-dir="right" aria-label="右">▶</button>
+            <button class="snake-dpad__btn snake-dpad__down" data-dir="down" aria-label="下">▼</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <script src="../assets/lib/jquery.js"></script>
+    <script src="../assets/js/home/snake.js"></script>
+  </body>
+</html>
