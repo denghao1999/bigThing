@@ -77,9 +77,11 @@
   function setOverlay(state, title, desc, primaryText) {
     if (!state) {
       els.overlay.hidden = true;
+      els.overlay.style.display = "none";
       return;
     }
     els.overlay.hidden = false;
+    els.overlay.style.display = "grid";
     els.overlayTitle.textContent = title;
     els.overlayDesc.textContent = desc;
     els.btnToggle.textContent = primaryText;

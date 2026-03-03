@@ -98,6 +98,10 @@
   padding: 18px;
 }
 
+.snake-overlay[hidden] {
+  display: none !important;
+}
+
 .snake-overlay__panel {
   width: min(420px, 100%);
   background: rgba(255, 255, 255, 0.96);
