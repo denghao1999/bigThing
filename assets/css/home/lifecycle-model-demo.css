@@ -544,6 +544,10 @@
   gap: 0;
 }
 
+.lcm-form--sheet .lcm-field {
+  margin-bottom: 2px;
+}
+
 .lcm-field {
   display: flex;
   flex-direction: column;
@@ -656,6 +660,10 @@
 
 .lcm-sheet__section {
   margin-bottom: 26px;
+}
+
+.lcm-sheet__section:last-child {
+  margin-bottom: 18px;
 }
 
 .lcm-tip-box {

@@ -67,7 +67,12 @@
                   <span>{{ stage.processes.length }} 道工序</span>
                   <span>每道工序独立维护输入 / 输出清单</span>
                 </div>
-                <button class="lcm-mini-btn" type="button" @click="openCreateEditor(stage.id, 'process')">
+                <button
+                  v-if="stage.processes.length"
+                  class="lcm-mini-btn"
+                  type="button"
+                  @click="openCreateEditor(stage.id, 'process')"
+                >
                   + 添加工序
                 </button>
               </div>
@@ -81,6 +86,7 @@
                         <div class="lcm-lane__meta">{{ process.inputs.length }} 项</div>
                       </div>
                       <button
+                        v-if="process.inputs.length"
                         class="lcm-mini-btn"
                         type="button"
                         @click="openCreateEditor(stage.id, 'input', process.id)"
@@ -148,6 +154,7 @@
                         <div class="lcm-lane__meta">{{ process.outputs.length }} 项</div>
                       </div>
                       <button
+                        v-if="process.outputs.length"
                         class="lcm-mini-btn"
                         type="button"
                         @click="openCreateEditor(stage.id, 'output', process.id)"
@@ -463,39 +470,43 @@
             </form>
           </template>
 
-          <form v-else class="lcm-form" @submit.prevent="saveEditor">
-            <label class="lcm-field">
-              <span class="lcm-field__label">所属环节</span>
-              <input class="lcm-input" :value="editor.stageName" disabled />
-            </label>
+          <form v-else class="lcm-form lcm-form--sheet" @submit.prevent="saveEditor">
+            <section class="lcm-sheet">
+              <div class="lcm-sheet__section">
+                <label class="lcm-field">
+                  <span class="lcm-field__label">所属环节</span>
+                  <input class="lcm-input" :value="editor.stageName" disabled />
+                </label>
 
-            <label class="lcm-field">
-              <span class="lcm-field__label">工序名称</span>
-              <input class="lcm-input" v-model.trim="editor.form.name" placeholder="请输入工序名称" required />
-            </label>
+                <label class="lcm-field">
+                  <span class="lcm-field__label is-required">工序名称</span>
+                  <input class="lcm-input" v-model.trim="editor.form.name" placeholder="请输入工序名称" required />
+                </label>
 
-            <label class="lcm-field">
-              <span class="lcm-field__label">产出物名称</span>
-              <input class="lcm-input" v-model.trim="editor.form.outputName" placeholder="如：纱线半成品" required />
-            </label>
+                <label class="lcm-field">
+                  <span class="lcm-field__label is-required">产出物名称</span>
+                  <input class="lcm-input" v-model.trim="editor.form.outputName" placeholder="如：纱线半成品" required />
+                </label>
 
-            <div class="lcm-field-grid">
-              <label class="lcm-field">
-                <span class="lcm-field__label">数量</span>
-                <input class="lcm-input" v-model="editor.form.quantity" type="number" min="0" step="0.001" required />
-              </label>
-              <label class="lcm-field">
-                <span class="lcm-field__label">单位</span>
-                <input class="lcm-input" v-model.trim="editor.form.unit" placeholder="kg / piece" required />
-              </label>
-            </div>
+                <div class="lcm-field-grid">
+                  <label class="lcm-field">
+                    <span class="lcm-field__label">数量</span>
+                    <input class="lcm-input" v-model="editor.form.quantity" type="number" min="0" step="0.001" required />
+                  </label>
+                  <label class="lcm-field">
+                    <span class="lcm-field__label">单位</span>
+                    <input class="lcm-input" v-model.trim="editor.form.unit" placeholder="kg / piece" required />
+                  </label>
+                </div>
 
-            <label class="lcm-field">
-              <span class="lcm-field__label">说明</span>
-              <textarea class="lcm-textarea" v-model.trim="editor.form.note" rows="4" placeholder="补充工序说明"></textarea>
-            </label>
+                <label class="lcm-field">
+                  <span class="lcm-field__label">说明</span>
+                  <textarea class="lcm-textarea" v-model.trim="editor.form.note" rows="6" placeholder="补充工序说明"></textarea>
+                </label>
+              </div>
+            </section>
 
-            <div class="lcm-form__actions">
+            <div class="lcm-form__actions lcm-form__actions--sticky">
               <button class="lcm-btn lcm-btn--primary" type="submit">保存</button>
               <button class="lcm-btn lcm-btn--ghost" type="button" @click="closeEditor">取消</button>
               <button
