@@ -176,10 +176,16 @@
       <aside class="lcm-inspector" :class="{ 'is-open': editor.visible }">
         <div class="lcm-inspector__header">
           <div>
-            <p class="lcm-inspector__eyebrow">编辑面板</p>
-            <h2 class="lcm-inspector__title">
-              {{ editor.visible ? editor.title : '选择一个节点开始编辑' }}
-            </h2>
+            <div class="lcm-inspector__title-row">
+              <h2 class="lcm-inspector__title">
+                {{
+                  isItemEditor
+                    ? (editor.type === 'input' ? '输入' : '输出')
+                    : editor.title
+                }}
+              </h2>
+              <span v-if="isItemEditor" class="lcm-inspector__guide">操作指南 ?</span>
+            </div>
           </div>
           <button
             class="lcm-icon-btn"
@@ -192,34 +198,259 @@
         </div>
 
         <template v-if="editor.visible">
-          <form class="lcm-form" @submit.prevent="saveEditor">
+          <template v-if="isItemEditor">
+            <div class="lcm-tabs">
+              <button
+                class="lcm-tab"
+                :class="{ 'is-active': editor.currentTab === 'basic' }"
+                type="button"
+                @click="setEditorTab('basic')"
+              >
+                <span class="lcm-tab__index">1</span>
+                <span class="lcm-tab__label">基础信息</span>
+              </button>
+              <button
+                class="lcm-tab"
+                :class="{ 'is-active': editor.currentTab === 'transport' }"
+                type="button"
+                @click="setEditorTab('transport')"
+              >
+                <span class="lcm-tab__index">2</span>
+                <span class="lcm-tab__label">运输信息</span>
+              </button>
+            </div>
+
+            <form class="lcm-form lcm-form--sheet" @submit.prevent="saveEditor">
+              <section v-if="editor.currentTab === 'basic'" class="lcm-sheet">
+                <div class="lcm-sheet__section">
+                  <label class="lcm-field">
+                    <span class="lcm-field__label is-required">所属工序</span>
+                    <input class="lcm-input" :value="getStageProcessLabel(editor.stageId)" disabled />
+                  </label>
+
+                  <div class="lcm-field-grid">
+                    <label class="lcm-field">
+                      <span class="lcm-field__label is-required">类型</span>
+                      <select class="lcm-input" v-model="editor.form.category">
+                        <option value="原材料">原材料</option>
+                        <option value="耗材">耗材</option>
+                        <option value="能源">能源</option>
+                        <option value="资源">资源</option>
+                        <option value="包装">包装</option>
+                        <option value="运输">运输</option>
+                        <option value="废气">废气</option>
+                        <option value="废水">废水</option>
+                        <option value="固废">固废</option>
+                        <option value="副产物">副产物</option>
+                      </select>
+                    </label>
+                    <label class="lcm-field">
+                      <span class="lcm-field__label is-required">名称</span>
+                      <input class="lcm-input" v-model.trim="editor.form.name" placeholder="请输入名称" required />
+                    </label>
+                  </div>
+
+                  <div class="lcm-field-grid">
+                    <label class="lcm-field">
+                      <span class="lcm-field__label">数量</span>
+                      <input class="lcm-input" v-model="editor.form.quantity" type="number" min="0" step="0.001" />
+                    </label>
+                    <label class="lcm-field">
+                      <span class="lcm-field__label">单位</span>
+                      <input class="lcm-input" v-model.trim="editor.form.unit" placeholder="常用单位组/kg" />
+                    </label>
+                  </div>
+
+                  <label class="lcm-field">
+                    <span class="lcm-field__label">数据来源</span>
+                    <input class="lcm-input" v-model.trim="editor.form.source" placeholder="请选择数据来源" />
+                  </label>
+
+                  <div class="lcm-tip-box">
+                    <span class="lcm-tip-box__icon">i</span>
+                    <span>
+                      {{ editor.type === 'input' ? '原材料建议采用质量单位，并填写相应质量数据。' : '输出项建议填写可追溯的数据来源，并在必要时补充处理说明。' }}
+                    </span>
+                  </div>
+
+                  <label class="lcm-field">
+                    <span class="lcm-field__label">数据说明</span>
+                    <textarea class="lcm-textarea" v-model.trim="editor.form.note" rows="4" placeholder="请输入"></textarea>
+                    <span class="lcm-field__counter">{{ (editor.form.note || '').length }} / 10000</span>
+                  </label>
+
+                  <div class="lcm-upload-row">
+                    <span class="lcm-field__label">上传数据凭证</span>
+                    <button class="lcm-upload-btn" type="button">上传数据凭证</button>
+                  </div>
+                </div>
+
+                <div class="lcm-sheet__section">
+                  <div class="lcm-section-head">
+                    <div class="lcm-section-head__title-wrap">
+                      <h3 class="lcm-section-head__title">影响因子</h3>
+                      <span class="lcm-section-head__guide">操作指南 ?</span>
+                    </div>
+                    <div class="lcm-section-head__actions">
+                      <span class="lcm-section-head__link">找不到对应过程？手动输入影响因子</span>
+                      <button class="lcm-factor-btn" type="button" @click="applyMockFactor('basic')">因子库</button>
+                    </div>
+                  </div>
+
+                  <div class="lcm-factor-table">
+                    <div class="lcm-factor-table__head">
+                      <span>因子名称</span>
+                      <span>数值</span>
+                      <span>单位</span>
+                      <span>地区</span>
+                      <span>所有者</span>
+                      <span>详情</span>
+                    </div>
+                    <div class="lcm-factor-table__row">
+                      <div class="lcm-factor-table__name">
+                        {{ editor.form.factor.name }}
+                      </div>
+                      <div>{{ editor.form.factor.value }}</div>
+                      <div>{{ editor.form.factor.unit }}</div>
+                      <div>{{ editor.form.factor.region }}</div>
+                      <div>{{ editor.form.factor.owner }}</div>
+                      <div>详情 ↗</div>
+                    </div>
+                    <div class="lcm-factor-table__toolbar">
+                      <button class="lcm-table-icon-btn" type="button">编辑</button>
+                      <button class="lcm-table-icon-btn" type="button">复制</button>
+                      <button class="lcm-table-icon-btn" type="button" @click="applyMockFactor('basic')">替换</button>
+                    </div>
+                  </div>
+                </div>
+              </section>
+
+              <section v-else class="lcm-sheet">
+                <div class="lcm-sheet__section">
+                  <div class="lcm-field">
+                    <span class="lcm-field__label">是否需要运输</span>
+                    <div class="lcm-segmented">
+                      <button
+                        class="lcm-segmented__item"
+                        :class="{ 'is-active': !editor.form.transport.required }"
+                        type="button"
+                        @click="setTransportRequired(false)"
+                      >
+                        不需要运输
+                      </button>
+                      <button
+                        class="lcm-segmented__item"
+                        :class="{ 'is-active': editor.form.transport.required }"
+                        type="button"
+                        @click="setTransportRequired(true)"
+                      >
+                        需要运输
+                      </button>
+                    </div>
+                  </div>
+
+                  <div v-if="editor.form.transport.required && currentRoute" class="lcm-route-card">
+                    <div class="lcm-route-card__title">路线1</div>
+                    <div class="lcm-field-grid">
+                      <label class="lcm-field">
+                        <span class="lcm-field__label is-required">路线名称</span>
+                        <input class="lcm-input" v-model.trim="currentRoute.name" placeholder="请输入路线名称" />
+                      </label>
+                      <label class="lcm-field">
+                        <span class="lcm-field__label is-required">实际运输重量 (kg)</span>
+                        <input class="lcm-input" v-model="currentRoute.weight" type="number" min="0" step="0.001" />
+                      </label>
+                    </div>
+
+                    <div class="lcm-field-grid">
+                      <label class="lcm-field">
+                        <span class="lcm-field__label is-required">始发地</span>
+                        <input class="lcm-input" v-model.trim="currentRoute.from" placeholder="如：长沙" />
+                      </label>
+                      <label class="lcm-field">
+                        <span class="lcm-field__label is-required">目的地</span>
+                        <input class="lcm-input" v-model.trim="currentRoute.to" placeholder="如：南京" />
+                      </label>
+                    </div>
+
+                    <div class="lcm-field-grid">
+                      <label class="lcm-field">
+                        <span class="lcm-field__label is-required">距离 (km)</span>
+                        <input class="lcm-input" v-model="currentRoute.distance" type="number" min="0" step="1" />
+                      </label>
+                      <label class="lcm-field">
+                        <span class="lcm-field__label is-required">运输方式</span>
+                        <select class="lcm-input" v-model="currentRoute.mode">
+                          <option value="公路运输">公路运输</option>
+                          <option value="铁路运输">铁路运输</option>
+                          <option value="水路运输">水路运输</option>
+                          <option value="航空运输">航空运输</option>
+                        </select>
+                      </label>
+                    </div>
+                  </div>
+                </div>
+
+                <div v-if="editor.form.transport.required && currentRoute" class="lcm-sheet__section">
+                  <div class="lcm-section-head">
+                    <div class="lcm-section-head__title-wrap">
+                      <h3 class="lcm-section-head__title">路线1影响因子</h3>
+                    </div>
+                  </div>
+
+                  <div class="lcm-factor-table">
+                    <div class="lcm-factor-table__head">
+                      <span>因子名称</span>
+                      <span>数值</span>
+                      <span>单位</span>
+                      <span>地区</span>
+                      <span>所有者</span>
+                      <span>详情</span>
+                    </div>
+                    <div class="lcm-factor-table__row">
+                      <div class="lcm-factor-table__name">{{ currentRoute.factor.name }}</div>
+                      <div>{{ currentRoute.factor.value }}</div>
+                      <div>{{ currentRoute.factor.unit }}</div>
+                      <div>{{ currentRoute.factor.region }}</div>
+                      <div>{{ currentRoute.factor.owner }}</div>
+                      <div>详情 ↗</div>
+                    </div>
+                    <div class="lcm-factor-table__toolbar">
+                      <button class="lcm-table-icon-btn" type="button">编辑</button>
+                      <button class="lcm-table-icon-btn" type="button">复制</button>
+                      <button class="lcm-table-icon-btn" type="button" @click="applyMockFactor('transport')">替换</button>
+                    </div>
+                  </div>
+                </div>
+              </section>
+
+              <div class="lcm-form__actions lcm-form__actions--sticky">
+                <button class="lcm-btn lcm-btn--primary" type="submit">保存</button>
+                <button class="lcm-btn lcm-btn--ghost" type="button" @click="closeEditor">取消</button>
+                <button
+                  v-if="editor.mode === 'edit'"
+                  class="lcm-btn lcm-btn--danger"
+                  type="button"
+                  @click="removeEditorItem"
+                >
+                  删除
+                </button>
+              </div>
+            </form>
+          </template>
+
+          <form v-else class="lcm-form" @submit.prevent="saveEditor">
             <label class="lcm-field">
               <span class="lcm-field__label">所属环节</span>
               <input class="lcm-input" :value="editor.stageName" disabled />
             </label>
 
-            <label class="lcm-field" v-if="editor.type !== 'process'">
-              <span class="lcm-field__label">清单类型</span>
-              <select class="lcm-input" v-model="editor.form.category">
-                <option value="原材料">原材料</option>
-                <option value="耗材">耗材</option>
-                <option value="能源">能源</option>
-                <option value="资源">资源</option>
-                <option value="包装">包装</option>
-                <option value="运输">运输</option>
-                <option value="废气">废气</option>
-                <option value="废水">废水</option>
-                <option value="固废">固废</option>
-                <option value="副产物">副产物</option>
-              </select>
+            <label class="lcm-field">
+              <span class="lcm-field__label">工序名称</span>
+              <input class="lcm-input" v-model.trim="editor.form.name" placeholder="请输入工序名称" required />
             </label>
 
             <label class="lcm-field">
-              <span class="lcm-field__label">{{ editor.type === 'process' ? '工序名称' : '清单名称' }}</span>
-              <input class="lcm-input" v-model.trim="editor.form.name" placeholder="请输入名称" required />
-            </label>
-
-            <label class="lcm-field" v-if="editor.type === 'process'">
               <span class="lcm-field__label">产出物名称</span>
               <input class="lcm-input" v-model.trim="editor.form.outputName" placeholder="如：纱线半成品" required />
             </label>
@@ -231,18 +462,13 @@
               </label>
               <label class="lcm-field">
                 <span class="lcm-field__label">单位</span>
-                <input class="lcm-input" v-model.trim="editor.form.unit" placeholder="kg / kWh / km" required />
+                <input class="lcm-input" v-model.trim="editor.form.unit" placeholder="kg / piece" required />
               </label>
             </div>
 
-            <label class="lcm-field" v-if="editor.type !== 'process'">
-              <span class="lcm-field__label">数据来源</span>
-              <input class="lcm-input" v-model.trim="editor.form.source" placeholder="ERP / 手工填报 / 统计台账" />
-            </label>
-
             <label class="lcm-field">
               <span class="lcm-field__label">说明</span>
-              <textarea class="lcm-textarea" v-model.trim="editor.form.note" rows="4" placeholder="补充规则、换算关系或备注"></textarea>
+              <textarea class="lcm-textarea" v-model.trim="editor.form.note" rows="4" placeholder="补充工序说明"></textarea>
             </label>
 
             <div class="lcm-form__actions">
