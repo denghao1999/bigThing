@@ -200,6 +200,10 @@
       <aside class="lcm-inspector" :class="{ 'is-open': editor.visible }">
         <div class="lcm-inspector__header">
           <div>
+            <p class="lcm-inspector__eyebrow">编辑面板</p>
+            <h2 class="lcm-inspector__title">
+              {{ editor.visible ? editor.title : '选择一个节点开始编辑' }}
+            </h2>
             <div class="lcm-inspector__title-row">
               <h2 class="lcm-inspector__title">
                 {{
@@ -222,6 +226,7 @@
         </div>
 
         <template v-if="editor.visible">
+          <form class="lcm-form" @submit.prevent="saveEditor">
           <template v-if="isItemEditor">
             <div class="lcm-tabs">
               <button
@@ -469,6 +474,28 @@
               <input class="lcm-input" :value="editor.stageName" disabled />
             </label>
 
+            <label class="lcm-field" v-if="editor.type !== 'process'">
+              <span class="lcm-field__label">清单类型</span>
+              <select class="lcm-input" v-model="editor.form.category">
+                <option value="原材料">原材料</option>
+                <option value="耗材">耗材</option>
+                <option value="能源">能源</option>
+                <option value="资源">资源</option>
+                <option value="包装">包装</option>
+                <option value="运输">运输</option>
+                <option value="废气">废气</option>
+                <option value="废水">废水</option>
+                <option value="固废">固废</option>
+                <option value="副产物">副产物</option>
+              </select>
+            </label>
+
+            <label class="lcm-field">
+              <span class="lcm-field__label">{{ editor.type === 'process' ? '工序名称' : '清单名称' }}</span>
+              <input class="lcm-input" v-model.trim="editor.form.name" placeholder="请输入名称" required />
+            </label>
+
+            <label class="lcm-field" v-if="editor.type === 'process'">
             <label class="lcm-field">
               <span class="lcm-field__label">工序名称</span>
               <input class="lcm-input" v-model.trim="editor.form.name" placeholder="请输入工序名称" required />
@@ -486,6 +513,18 @@
               </label>
               <label class="lcm-field">
                 <span class="lcm-field__label">单位</span>
+                <input class="lcm-input" v-model.trim="editor.form.unit" placeholder="kg / kWh / km" required />
+              </label>
+            </div>
+
+            <label class="lcm-field" v-if="editor.type !== 'process'">
+              <span class="lcm-field__label">数据来源</span>
+              <input class="lcm-input" v-model.trim="editor.form.source" placeholder="ERP / 手工填报 / 统计台账" />
+            </label>
+
+            <label class="lcm-field">
+              <span class="lcm-field__label">说明</span>
+              <textarea class="lcm-textarea" v-model.trim="editor.form.note" rows="4" placeholder="补充规则、换算关系或备注"></textarea>
                 <input class="lcm-input" v-model.trim="editor.form.unit" placeholder="kg / piece" required />
               </label>
             </div>

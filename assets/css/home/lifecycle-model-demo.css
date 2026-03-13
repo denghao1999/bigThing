@@ -484,6 +484,8 @@
   right: 0;
   bottom: 0;
   z-index: 60;
+  width: 380px;
+  padding: 18px;
   width: 780px;
   padding: 0;
   background: #fff;
@@ -497,6 +499,21 @@
   transform: translateX(0);
 }
 
+.lcm-inspector__eyebrow {
+  margin: 0 0 6px;
+  color: #2563eb;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.lcm-inspector__header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 16px;
 .lcm-inspector__header {
   display: flex;
   align-items: center;
@@ -515,6 +532,10 @@
 .lcm-inspector__title {
   margin: 0;
   color: #111827;
+  font-size: 18px;
+  font-weight: 700;
+}
+
   font-size: 24px;
   font-weight: 700;
 }

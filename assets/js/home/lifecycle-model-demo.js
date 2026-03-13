@@ -103,6 +103,79 @@ const DEFAULT_MODEL = {
     {
       id: "raw",
       name: "原料获取",
+      inputs: [
+        { id: createId("input"), category: "原材料", name: "再生 PET 切片", quantity: 1.02, unit: "kg", source: "采购台账", note: "" },
+        { id: createId("input"), category: "运输", name: "公路运输", quantity: 186, unit: "km", source: "物流系统", note: "" },
+        {
+          id: createId("input"),
+          category: "原材料",
+          name: "再生 PET 切片",
+          quantity: 1.02,
+          unit: "kg",
+          source: "采购台账",
+          note: "",
+          certificateName: "",
+          factor: {
+            name: "聚对苯二甲酸乙二醇酯（rPET）",
+            value: 2.31,
+            unit: "kg CO2-eq/kg",
+            region: "CN",
+            owner: "CPCD",
+          },
+          transport: {
+            required: true,
+            routes: [
+              {
+                id: createId("route"),
+                name: "PET 切片运输",
+                weight: 1.02,
+                from: "苏州",
+                to: "无锡",
+                distance: 186,
+                mode: "公路运输",
+                factor: {
+                  name: "transport, freight, lorry 16-32 metric ton",
+                  value: 0.168342,
+                  unit: "kg CO2-eq/t*km",
+                  region: "RoW",
+                  owner: "Ecoinvent",
+                },
+              },
+            ],
+          },
+        },
+        {
+          id: createId("input"),
+          category: "运输",
+          name: "公路运输",
+          quantity: 186,
+          unit: "km",
+          source: "物流系统",
+          note: "",
+          certificateName: "",
+          factor: {
+            name: "transport, freight, lorry 16-32 metric ton",
+            value: 0.168342,
+            unit: "kg CO2-eq/t*km",
+            region: "RoW",
+            owner: "Ecoinvent",
+          },
+          transport: {
+            required: false,
+            routes: [],
+          },
+        },
+      ],
+      processes: [
+        { id: createId("process"), name: "原料预处理", outputName: "预处理切片", quantity: 1.0, unit: "kg", note: "含筛分和干燥" },
+      ],
+      outputs: [
+        { id: createId("output"), category: "固废", name: "筛杂固废", quantity: 0.01, unit: "kg", source: "人工估算", note: "" },
+        {
+          id: createId("output"),
+          category: "固废",
+          name: "筛杂固废",
+          quantity: 0.01,
       processes: [
         createProcess({
           name: "原料预处理",
@@ -183,6 +256,25 @@ const DEFAULT_MODEL = {
     {
       id: "production",
       name: "生产",
+      inputs: [
+        { id: createId("input"), category: "能源", name: "电网电力", quantity: 96.272, unit: "kWh", source: "电表抄表", note: "" },
+        { id: createId("input"), category: "资源", name: "自来水", quantity: 0.113, unit: "t", source: "水表抄表", note: "" },
+        { id: createId("input"), category: "能源", name: "柴油", quantity: 2.116, unit: "kg", source: "能源台账", note: "" },
+        { id: createId("input"), category: "能源", name: "电网电力", quantity: 96.272, unit: "kWh", source: "电表抄表", note: "", certificateName: "", factor: { name: "market for electricity, medium voltage", value: 0.578, unit: "kg CO2-eq/kWh", region: "CN", owner: "CPCD" }, transport: { required: false, routes: [] } },
+        { id: createId("input"), category: "资源", name: "自来水", quantity: 0.113, unit: "t", source: "水表抄表", note: "", certificateName: "", factor: { name: "tap water production", value: 0.42, unit: "kg CO2-eq/t", region: "CN", owner: "CPCD" }, transport: { required: false, routes: [] } },
+        { id: createId("input"), category: "能源", name: "柴油", quantity: 2.116, unit: "kg", source: "能源台账", note: "", certificateName: "", factor: { name: "diesel combustion", value: 3.2, unit: "kg CO2-eq/kg", region: "CN", owner: "CPCD" }, transport: { required: false, routes: [] } },
+      ],
+      processes: [
+        { id: createId("process"), name: "纺丝阶段", outputName: "纱线半成品", quantity: 109.06, unit: "kg", note: "主工序，可继续拆分卷绕、加捻等子工序" },
+        { id: createId("process"), name: "后整理阶段", outputName: "成品纱线", quantity: 108.4, unit: "kg", note: "示例中用第二道工序表达串行生产" },
+      ],
+      outputs: [
+        { id: createId("output"), category: "废水", name: "废水 COD", quantity: 0.112, unit: "m3", source: "污水监测", note: "" },
+        { id: createId("output"), category: "废水", name: "废水 BOD", quantity: 0.112, unit: "m3", source: "污水监测", note: "" },
+        { id: createId("output"), category: "固废", name: "固体废物", quantity: 0.279, unit: "kg", source: "危废台账", note: "" },
+        { id: createId("output"), category: "废水", name: "废水 COD", quantity: 0.112, unit: "m3", source: "污水监测", note: "", certificateName: "", factor: { name: "wastewater treatment, COD", value: 0.72, unit: "kg CO2-eq/m3", region: "CN", owner: "CPCD" }, transport: { required: false, routes: [] } },
+        { id: createId("output"), category: "废水", name: "废水 BOD", quantity: 0.112, unit: "m3", source: "污水监测", note: "", certificateName: "", factor: { name: "wastewater treatment, BOD", value: 0.63, unit: "kg CO2-eq/m3", region: "CN", owner: "CPCD" }, transport: { required: false, routes: [] } },
+        { id: createId("output"), category: "固废", name: "固体废物", quantity: 0.279, unit: "kg", source: "危废台账", note: "", certificateName: "", factor: { name: "solid waste disposal", value: 0.91, unit: "kg CO2-eq/kg", region: "CN", owner: "CPCD" }, transport: { required: false, routes: [] } },
       processes: [
         createProcess({
           name: "纺丝阶段",
@@ -295,6 +387,12 @@ const DEFAULT_MODEL = {
     {
       id: "packaging",
       name: "包装",
+      inputs: [
+        { id: createId("input"), category: "包装", name: "纸箱", quantity: 0.12, unit: "kg", source: "BOM", note: "" },
+        { id: createId("input"), category: "包装", name: "缠绕膜", quantity: 0.03, unit: "kg", source: "BOM", note: "" },
+        { id: createId("input"), category: "包装", name: "纸箱", quantity: 0.12, unit: "kg", source: "BOM", note: "", certificateName: "", factor: { name: "corrugated board box", value: 1.12, unit: "kg CO2-eq/kg", region: "CN", owner: "CPCD" }, transport: { required: false, routes: [] } },
+        { id: createId("input"), category: "包装", name: "缠绕膜", quantity: 0.03, unit: "kg", source: "BOM", note: "", certificateName: "", factor: { name: "plastic film", value: 2.04, unit: "kg CO2-eq/kg", region: "CN", owner: "CPCD" }, transport: { required: false, routes: [] } },
+      ],
       processes: [
         createProcess({
           name: "包装工序",
@@ -338,6 +436,10 @@ const DEFAULT_MODEL = {
     {
       id: "distribution",
       name: "分销",
+      inputs: [
+        { id: createId("input"), category: "运输", name: "柴油货车运输", quantity: 580, unit: "km", source: "物流系统", note: "" },
+        { id: createId("input"), category: "运输", name: "柴油货车运输", quantity: 580, unit: "km", source: "物流系统", note: "", certificateName: "", factor: { name: "transport, freight, lorry 16-32 metric ton", value: 0.168342, unit: "kg CO2-eq/t*km", region: "RoW", owner: "Ecoinvent" }, transport: { required: true, routes: [{ id: createId("route"), name: "成品发运", weight: 108.55, from: "无锡", to: "南京", distance: 580, mode: "公路运输", factor: { name: "transport, freight, lorry 16-32 metric ton", value: 0.168342, unit: "kg CO2-eq/t*km", region: "RoW", owner: "Ecoinvent" } }] } },
+      ],
       processes: [
         createProcess({
           name: "运输至客户仓",
@@ -389,6 +491,10 @@ const DEFAULT_MODEL = {
     {
       id: "use",
       name: "使用",
+      inputs: [
+        { id: createId("input"), category: "能源", name: "客户端用电", quantity: 8.4, unit: "kWh", source: "场景估算", note: "" },
+        { id: createId("input"), category: "能源", name: "客户端用电", quantity: 8.4, unit: "kWh", source: "场景估算", note: "", certificateName: "", factor: { name: "use phase electricity", value: 0.578, unit: "kg CO2-eq/kWh", region: "CN", owner: "CPCD" }, transport: { required: false, routes: [] } },
+      ],
       processes: [
         createProcess({
           name: "产品使用阶段",
@@ -418,6 +524,21 @@ const DEFAULT_MODEL = {
     {
       id: "end",
       name: "废弃处理",
+      inputs: [
+        { id: createId("input"), category: "运输", name: "回收运输", quantity: 65, unit: "km", source: "场景估算", note: "" },
+        { id: createId("input"), category: "运输", name: "回收运输", quantity: 65, unit: "km", source: "场景估算", note: "", certificateName: "", factor: { name: "transport, freight, lorry 16-32 metric ton", value: 0.168342, unit: "kg CO2-eq/t*km", region: "RoW", owner: "Ecoinvent" }, transport: { required: true, routes: [{ id: createId("route"), name: "回收运输", weight: 1, from: "南京", to: "苏州", distance: 65, mode: "公路运输", factor: { name: "transport, freight, lorry 16-32 metric ton", value: 0.168342, unit: "kg CO2-eq/t*km", region: "RoW", owner: "Ecoinvent" } }] } },
+      ],
+      processes: [
+        { id: createId("process"), name: "回收与处置", outputName: "处置完成", quantity: 1, unit: "piece", note: "" },
+      ],
+      outputs: [
+        { id: createId("output"), category: "副产物", name: "回收料", quantity: 0.18, unit: "kg", source: "回收商数据", note: "" },
+      ],
+    },
+  ],
+};
+
+        { id: createId("output"), category: "副产物", name: "回收料", quantity: 0.18, unit: "kg", source: "回收商数据", note: "", certificateName: "", factor: { name: "recycled material credit", value: -0.42, unit: "kg CO2-eq/kg", region: "CN", owner: "自定义" }, transport: { required: false, routes: [] } },
       processes: [
         createProcess({
           name: "回收与处置",
@@ -873,6 +994,10 @@ createApp({
       stageCount,
       totalNodeCount,
       totalOutputQuantity,
+      formatNumber,
+      openCreateEditor,
+      openEditEditor,
+      closeEditor,
       isItemEditor,
       currentRoute,
       formatNumber,
