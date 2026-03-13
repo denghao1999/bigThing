@@ -28,148 +28,172 @@
       </header>
 
       <section class="lcm-board">
-        <div class="lcm-grid-head lcm-grid-head--blank"></div>
-        <div class="lcm-grid-head lcm-grid-head--left">
-          <span class="lcm-grid-head__title">输入清单</span>
-          <span class="lcm-grid-head__desc">原料 / 耗材 / 能源 / 资源 / 运输</span>
-        </div>
-        <div class="lcm-product-card">
-          <div class="lcm-product-card__icon">产</div>
-          <div class="lcm-product-card__main">
-            <div class="lcm-product-card__name">{{ model.product.name }}</div>
-            <div class="lcm-product-card__meta">
-              {{ model.product.model }} · {{ model.product.functionalUnit }}
-            </div>
+        <div class="lcm-board-head">
+          <div class="lcm-grid-head lcm-grid-head--blank"></div>
+          <div class="lcm-grid-head lcm-grid-head--left">
+            <span class="lcm-grid-head__title">输入清单</span>
+            <span class="lcm-grid-head__desc">原料 / 耗材 / 能源 / 资源 / 运输</span>
           </div>
-          <div class="lcm-product-card__stat">
-            <div class="lcm-product-card__stat-label">总产出</div>
-            <div class="lcm-product-card__stat-value">
-              {{ formatNumber(totalOutputQuantity) }} {{ model.product.unit }}
-            </div>
-          </div>
-        </div>
-        <div class="lcm-grid-head lcm-grid-head--right">
-          <span class="lcm-grid-head__title">输出清单</span>
-          <span class="lcm-grid-head__desc">废气 / 废水 / 固废 / 副产物</span>
-        </div>
-
-        <template v-for="stage in model.stages" :key="stage.id">
-          <div class="lcm-stage-label" :class="{ 'is-selected': editor.stageId === stage.id }">
-            <span>{{ stage.name }}</span>
-          </div>
-
-          <section class="lcm-lane lcm-lane--input">
-            <div class="lcm-lane__toolbar">
-              <div>
-                <div class="lcm-lane__title">输入</div>
-                <div class="lcm-lane__meta">{{ stage.inputs.length }} 项</div>
+          <div class="lcm-product-card">
+            <div class="lcm-product-card__icon">产</div>
+            <div class="lcm-product-card__main">
+              <div class="lcm-product-card__name">{{ model.product.name }}</div>
+              <div class="lcm-product-card__meta">
+                {{ model.product.model }} · {{ model.product.functionalUnit }}
               </div>
-              <button class="lcm-mini-btn" type="button" @click="openCreateEditor(stage.id, 'input')">
-                + 添加输入
-              </button>
+            </div>
+            <div class="lcm-product-card__stat">
+              <div class="lcm-product-card__stat-label">总产出</div>
+              <div class="lcm-product-card__stat-value">
+                {{ formatNumber(totalOutputQuantity) }} {{ model.product.unit }}
+              </div>
+            </div>
+          </div>
+          <div class="lcm-grid-head lcm-grid-head--right">
+            <span class="lcm-grid-head__title">输出清单</span>
+            <span class="lcm-grid-head__desc">废气 / 废水 / 固废 / 副产物</span>
+          </div>
+        </div>
+
+        <div class="lcm-stage-list">
+          <section class="lcm-stage-block" v-for="stage in model.stages" :key="stage.id">
+            <div class="lcm-stage-label" :class="{ 'is-selected': editor.stageId === stage.id }">
+              <span>{{ stage.name }}</span>
             </div>
 
-            <div class="lcm-lane__list" v-if="stage.inputs.length">
-              <article
-                v-for="item in stage.inputs"
-                :key="item.id"
-                class="lcm-item-card lcm-item-card--input"
-                @click="openEditEditor(stage.id, 'input', item.id)"
-              >
-                <div class="lcm-item-card__top">
-                  <span class="lcm-item-card__tag">{{ item.category }}</span>
-                  <span class="lcm-item-card__value">{{ formatNumber(item.quantity) }} {{ item.unit }}</span>
+            <div class="lcm-stage-main">
+              <div class="lcm-stage-main__toolbar">
+                <div class="lcm-stage-main__meta">
+                  <span>{{ stage.processes.length }} 道工序</span>
+                  <span>每道工序独立维护输入 / 输出清单</span>
                 </div>
-                <div class="lcm-item-card__name">{{ item.name }}</div>
-                <div class="lcm-item-card__foot">{{ item.source || '未填写来源' }}</div>
-              </article>
-            </div>
-            <button
-              v-else
-              class="lcm-empty-btn"
-              type="button"
-              @click="openCreateEditor(stage.id, 'input')"
-            >
-              + 添加输入
-            </button>
-          </section>
-
-          <section class="lcm-lane lcm-lane--process">
-            <div class="lcm-lane__toolbar">
-              <div>
-                <div class="lcm-lane__title">工序</div>
-                <div class="lcm-lane__meta">{{ stage.processes.length }} 道</div>
+                <button class="lcm-mini-btn" type="button" @click="openCreateEditor(stage.id, 'process')">
+                  + 添加工序
+                </button>
               </div>
-              <button class="lcm-mini-btn" type="button" @click="openCreateEditor(stage.id, 'process')">
+
+              <div v-if="stage.processes.length" class="lcm-process-rows">
+                <div class="lcm-process-row" v-for="process in stage.processes" :key="process.id">
+                  <section class="lcm-lane lcm-lane--input">
+                    <div class="lcm-lane__toolbar">
+                      <div>
+                        <div class="lcm-lane__title">输入</div>
+                        <div class="lcm-lane__meta">{{ process.inputs.length }} 项</div>
+                      </div>
+                      <button
+                        class="lcm-mini-btn"
+                        type="button"
+                        @click="openCreateEditor(stage.id, 'input', process.id)"
+                      >
+                        + 添加输入
+                      </button>
+                    </div>
+
+                    <div class="lcm-lane__list" v-if="process.inputs.length">
+                      <article
+                        v-for="item in process.inputs"
+                        :key="item.id"
+                        class="lcm-item-card lcm-item-card--input"
+                        @click="openEditEditor(stage.id, 'input', item.id, process.id)"
+                      >
+                        <div class="lcm-item-card__top">
+                          <span class="lcm-item-card__tag">{{ item.category }}</span>
+                          <span class="lcm-item-card__value">{{ formatNumber(item.quantity) }} {{ item.unit }}</span>
+                        </div>
+                        <div class="lcm-item-card__name">{{ item.name }}</div>
+                        <div class="lcm-item-card__foot">录用工序：{{ process.name }}</div>
+                      </article>
+                    </div>
+                    <button
+                      v-else
+                      class="lcm-empty-btn"
+                      type="button"
+                      @click="openCreateEditor(stage.id, 'input', process.id)"
+                    >
+                      + 添加输入
+                    </button>
+                  </section>
+
+                  <section class="lcm-lane lcm-lane--process">
+                    <div class="lcm-lane__toolbar">
+                      <div>
+                        <div class="lcm-lane__title">工序 {{ getProcessIndex(stage, process.id) + 1 }}</div>
+                        <div class="lcm-lane__meta">当前环节内独立工序</div>
+                      </div>
+                    </div>
+
+                    <div class="lcm-process-list">
+                      <article
+                        class="lcm-process-card"
+                        @click="openEditEditor(stage.id, 'process', process.id)"
+                      >
+                        <div class="lcm-process-card__badge">{{ getProcessIndex(stage, process.id) + 1 }}</div>
+                        <div class="lcm-process-card__main">
+                          <div class="lcm-process-card__name">{{ process.name }}</div>
+                          <div class="lcm-process-card__output">
+                            产出物：{{ process.outputName }}
+                          </div>
+                        </div>
+                        <div class="lcm-process-card__value">
+                          {{ formatNumber(process.quantity) }} {{ process.unit }}
+                        </div>
+                      </article>
+                    </div>
+                  </section>
+
+                  <section class="lcm-lane lcm-lane--output">
+                    <div class="lcm-lane__toolbar">
+                      <div>
+                        <div class="lcm-lane__title">输出</div>
+                        <div class="lcm-lane__meta">{{ process.outputs.length }} 项</div>
+                      </div>
+                      <button
+                        class="lcm-mini-btn"
+                        type="button"
+                        @click="openCreateEditor(stage.id, 'output', process.id)"
+                      >
+                        + 添加输出
+                      </button>
+                    </div>
+
+                    <div class="lcm-lane__list" v-if="process.outputs.length">
+                      <article
+                        v-for="item in process.outputs"
+                        :key="item.id"
+                        class="lcm-item-card lcm-item-card--output"
+                        @click="openEditEditor(stage.id, 'output', item.id, process.id)"
+                      >
+                        <div class="lcm-item-card__top">
+                          <span class="lcm-item-card__tag">{{ item.category }}</span>
+                          <span class="lcm-item-card__value">{{ formatNumber(item.quantity) }} {{ item.unit }}</span>
+                        </div>
+                        <div class="lcm-item-card__name">{{ item.name }}</div>
+                        <div class="lcm-item-card__foot">来源工序：{{ process.name }}</div>
+                      </article>
+                    </div>
+                    <button
+                      v-else
+                      class="lcm-empty-btn"
+                      type="button"
+                      @click="openCreateEditor(stage.id, 'output', process.id)"
+                    >
+                      + 添加输出
+                    </button>
+                  </section>
+                </div>
+              </div>
+
+              <button
+                v-else
+                class="lcm-empty-btn lcm-empty-btn--stage"
+                type="button"
+                @click="openCreateEditor(stage.id, 'process')"
+              >
                 + 添加工序
               </button>
             </div>
-
-            <div class="lcm-process-list" v-if="stage.processes.length">
-              <article
-                v-for="(process, processIndex) in stage.processes"
-                :key="process.id"
-                class="lcm-process-card"
-                @click="openEditEditor(stage.id, 'process', process.id)"
-              >
-                <div class="lcm-process-card__badge">{{ processIndex + 1 }}</div>
-                <div class="lcm-process-card__main">
-                  <div class="lcm-process-card__name">{{ process.name }}</div>
-                  <div class="lcm-process-card__output">
-                    产出物：{{ process.outputName }}
-                  </div>
-                </div>
-                <div class="lcm-process-card__value">
-                  {{ formatNumber(process.quantity) }} {{ process.unit }}
-                </div>
-              </article>
-            </div>
-            <button
-              v-else
-              class="lcm-empty-btn"
-              type="button"
-              @click="openCreateEditor(stage.id, 'process')"
-            >
-              + 添加工序
-            </button>
           </section>
-
-          <section class="lcm-lane lcm-lane--output">
-            <div class="lcm-lane__toolbar">
-              <div>
-                <div class="lcm-lane__title">输出</div>
-                <div class="lcm-lane__meta">{{ stage.outputs.length }} 项</div>
-              </div>
-              <button class="lcm-mini-btn" type="button" @click="openCreateEditor(stage.id, 'output')">
-                + 添加输出
-              </button>
-            </div>
-
-            <div class="lcm-lane__list" v-if="stage.outputs.length">
-              <article
-                v-for="item in stage.outputs"
-                :key="item.id"
-                class="lcm-item-card lcm-item-card--output"
-                @click="openEditEditor(stage.id, 'output', item.id)"
-              >
-                <div class="lcm-item-card__top">
-                  <span class="lcm-item-card__tag">{{ item.category }}</span>
-                  <span class="lcm-item-card__value">{{ formatNumber(item.quantity) }} {{ item.unit }}</span>
-                </div>
-                <div class="lcm-item-card__name">{{ item.name }}</div>
-                <div class="lcm-item-card__foot">{{ item.source || '未填写来源' }}</div>
-              </article>
-            </div>
-            <button
-              v-else
-              class="lcm-empty-btn"
-              type="button"
-              @click="openCreateEditor(stage.id, 'output')"
-            >
-              + 添加输出
-            </button>
-          </section>
-        </template>
+        </div>
       </section>
 
       <div class="lcm-drawer-mask" v-if="editor.visible" @click="closeEditor"></div>
@@ -225,7 +249,7 @@
                 <div class="lcm-sheet__section">
                   <label class="lcm-field">
                     <span class="lcm-field__label is-required">所属工序</span>
-                    <input class="lcm-input" :value="getStageProcessLabel(editor.stageId)" disabled />
+                    <input class="lcm-input" :value="getStageProcessLabel(editor.stageId, editor.processId)" disabled />
                   </label>
 
                   <div class="lcm-field-grid">

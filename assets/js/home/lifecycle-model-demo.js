@@ -3,176 +3,7 @@ const { createApp, reactive, computed, watch } = Vue;
 const STORAGE_KEY = "lifecycle-model-demo";
 
 const createId = (prefix) => `${prefix}_${Math.random().toString(36).slice(2, 10)}`;
-
 const clone = (value) => JSON.parse(JSON.stringify(value));
-
-const DEFAULT_MODEL = {
-  product: {
-    name: "涤纶纱线",
-    model: "PF-2026",
-    functionalUnit: "1 Piece(s)",
-    quantity: 1,
-    unit: "kg",
-  },
-  stages: [
-    {
-      id: "raw",
-      name: "原料获取",
-      inputs: [
-        {
-          id: createId("input"),
-          category: "原材料",
-          name: "再生 PET 切片",
-          quantity: 1.02,
-          unit: "kg",
-          source: "采购台账",
-          note: "",
-          certificateName: "",
-          factor: {
-            name: "聚对苯二甲酸乙二醇酯（rPET）",
-            value: 2.31,
-            unit: "kg CO2-eq/kg",
-            region: "CN",
-            owner: "CPCD",
-          },
-          transport: {
-            required: true,
-            routes: [
-              {
-                id: createId("route"),
-                name: "PET 切片运输",
-                weight: 1.02,
-                from: "苏州",
-                to: "无锡",
-                distance: 186,
-                mode: "公路运输",
-                factor: {
-                  name: "transport, freight, lorry 16-32 metric ton",
-                  value: 0.168342,
-                  unit: "kg CO2-eq/t*km",
-                  region: "RoW",
-                  owner: "Ecoinvent",
-                },
-              },
-            ],
-          },
-        },
-        {
-          id: createId("input"),
-          category: "运输",
-          name: "公路运输",
-          quantity: 186,
-          unit: "km",
-          source: "物流系统",
-          note: "",
-          certificateName: "",
-          factor: {
-            name: "transport, freight, lorry 16-32 metric ton",
-            value: 0.168342,
-            unit: "kg CO2-eq/t*km",
-            region: "RoW",
-            owner: "Ecoinvent",
-          },
-          transport: {
-            required: false,
-            routes: [],
-          },
-        },
-      ],
-      processes: [
-        { id: createId("process"), name: "原料预处理", outputName: "预处理切片", quantity: 1.0, unit: "kg", note: "含筛分和干燥" },
-      ],
-      outputs: [
-        {
-          id: createId("output"),
-          category: "固废",
-          name: "筛杂固废",
-          quantity: 0.01,
-          unit: "kg",
-          source: "人工估算",
-          note: "",
-          certificateName: "",
-          factor: {
-            name: "waste treatment, municipal incineration",
-            value: 0.91,
-            unit: "kg CO2-eq/kg",
-            region: "CN",
-            owner: "CPCD",
-          },
-          transport: {
-            required: false,
-            routes: [],
-          },
-        },
-      ],
-    },
-    {
-      id: "production",
-      name: "生产",
-      inputs: [
-        { id: createId("input"), category: "能源", name: "电网电力", quantity: 96.272, unit: "kWh", source: "电表抄表", note: "", certificateName: "", factor: { name: "market for electricity, medium voltage", value: 0.578, unit: "kg CO2-eq/kWh", region: "CN", owner: "CPCD" }, transport: { required: false, routes: [] } },
-        { id: createId("input"), category: "资源", name: "自来水", quantity: 0.113, unit: "t", source: "水表抄表", note: "", certificateName: "", factor: { name: "tap water production", value: 0.42, unit: "kg CO2-eq/t", region: "CN", owner: "CPCD" }, transport: { required: false, routes: [] } },
-        { id: createId("input"), category: "能源", name: "柴油", quantity: 2.116, unit: "kg", source: "能源台账", note: "", certificateName: "", factor: { name: "diesel combustion", value: 3.2, unit: "kg CO2-eq/kg", region: "CN", owner: "CPCD" }, transport: { required: false, routes: [] } },
-      ],
-      processes: [
-        { id: createId("process"), name: "纺丝阶段", outputName: "纱线半成品", quantity: 109.06, unit: "kg", note: "主工序，可继续拆分卷绕、加捻等子工序" },
-        { id: createId("process"), name: "后整理阶段", outputName: "成品纱线", quantity: 108.4, unit: "kg", note: "示例中用第二道工序表达串行生产" },
-      ],
-      outputs: [
-        { id: createId("output"), category: "废水", name: "废水 COD", quantity: 0.112, unit: "m3", source: "污水监测", note: "", certificateName: "", factor: { name: "wastewater treatment, COD", value: 0.72, unit: "kg CO2-eq/m3", region: "CN", owner: "CPCD" }, transport: { required: false, routes: [] } },
-        { id: createId("output"), category: "废水", name: "废水 BOD", quantity: 0.112, unit: "m3", source: "污水监测", note: "", certificateName: "", factor: { name: "wastewater treatment, BOD", value: 0.63, unit: "kg CO2-eq/m3", region: "CN", owner: "CPCD" }, transport: { required: false, routes: [] } },
-        { id: createId("output"), category: "固废", name: "固体废物", quantity: 0.279, unit: "kg", source: "危废台账", note: "", certificateName: "", factor: { name: "solid waste disposal", value: 0.91, unit: "kg CO2-eq/kg", region: "CN", owner: "CPCD" }, transport: { required: false, routes: [] } },
-      ],
-    },
-    {
-      id: "packaging",
-      name: "包装",
-      inputs: [
-        { id: createId("input"), category: "包装", name: "纸箱", quantity: 0.12, unit: "kg", source: "BOM", note: "", certificateName: "", factor: { name: "corrugated board box", value: 1.12, unit: "kg CO2-eq/kg", region: "CN", owner: "CPCD" }, transport: { required: false, routes: [] } },
-        { id: createId("input"), category: "包装", name: "缠绕膜", quantity: 0.03, unit: "kg", source: "BOM", note: "", certificateName: "", factor: { name: "plastic film", value: 2.04, unit: "kg CO2-eq/kg", region: "CN", owner: "CPCD" }, transport: { required: false, routes: [] } },
-      ],
-      processes: [
-        { id: createId("process"), name: "包装工序", outputName: "包装成品", quantity: 108.55, unit: "kg", note: "" },
-      ],
-      outputs: [],
-    },
-    {
-      id: "distribution",
-      name: "分销",
-      inputs: [
-        { id: createId("input"), category: "运输", name: "柴油货车运输", quantity: 580, unit: "km", source: "物流系统", note: "", certificateName: "", factor: { name: "transport, freight, lorry 16-32 metric ton", value: 0.168342, unit: "kg CO2-eq/t*km", region: "RoW", owner: "Ecoinvent" }, transport: { required: true, routes: [{ id: createId("route"), name: "成品发运", weight: 108.55, from: "无锡", to: "南京", distance: 580, mode: "公路运输", factor: { name: "transport, freight, lorry 16-32 metric ton", value: 0.168342, unit: "kg CO2-eq/t*km", region: "RoW", owner: "Ecoinvent" } }] } },
-      ],
-      processes: [
-        { id: createId("process"), name: "运输至客户仓", outputName: "已交付产品", quantity: 108.55, unit: "kg", note: "可继续增加仓储、装卸等工序" },
-      ],
-      outputs: [],
-    },
-    {
-      id: "use",
-      name: "使用",
-      inputs: [
-        { id: createId("input"), category: "能源", name: "客户端用电", quantity: 8.4, unit: "kWh", source: "场景估算", note: "", certificateName: "", factor: { name: "use phase electricity", value: 0.578, unit: "kg CO2-eq/kWh", region: "CN", owner: "CPCD" }, transport: { required: false, routes: [] } },
-      ],
-      processes: [
-        { id: createId("process"), name: "产品使用阶段", outputName: "使用后的产品", quantity: 1, unit: "piece", note: "" },
-      ],
-      outputs: [],
-    },
-    {
-      id: "end",
-      name: "废弃处理",
-      inputs: [
-        { id: createId("input"), category: "运输", name: "回收运输", quantity: 65, unit: "km", source: "场景估算", note: "", certificateName: "", factor: { name: "transport, freight, lorry 16-32 metric ton", value: 0.168342, unit: "kg CO2-eq/t*km", region: "RoW", owner: "Ecoinvent" }, transport: { required: true, routes: [{ id: createId("route"), name: "回收运输", weight: 1, from: "南京", to: "苏州", distance: 65, mode: "公路运输", factor: { name: "transport, freight, lorry 16-32 metric ton", value: 0.168342, unit: "kg CO2-eq/t*km", region: "RoW", owner: "Ecoinvent" } }] } },
-      ],
-      processes: [
-        { id: createId("process"), name: "回收与处置", outputName: "处置完成", quantity: 1, unit: "piece", note: "" },
-      ],
-      outputs: [
-        { id: createId("output"), category: "副产物", name: "回收料", quantity: 0.18, unit: "kg", source: "回收商数据", note: "", certificateName: "", factor: { name: "recycled material credit", value: -0.42, unit: "kg CO2-eq/kg", region: "CN", owner: "自定义" }, transport: { required: false, routes: [] } },
-      ],
-    },
-  ],
-};
 
 function createDefaultFactor(type, category) {
   if (type === "output") {
@@ -219,6 +50,439 @@ function createEmptyRoute() {
   };
 }
 
+function createItem({
+  category,
+  name,
+  quantity,
+  unit,
+  source = "",
+  note = "",
+  certificateName = "",
+  factor,
+  transport,
+}) {
+  return {
+    id: createId("item"),
+    category,
+    name,
+    quantity,
+    unit,
+    source,
+    note,
+    certificateName,
+    factor: factor || createDefaultFactor("input", category),
+    transport: transport || {
+      required: false,
+      routes: [],
+    },
+  };
+}
+
+function createProcess({ name, outputName, quantity, unit, note = "", inputs = [], outputs = [] }) {
+  return {
+    id: createId("process"),
+    name,
+    outputName,
+    quantity,
+    unit,
+    note,
+    inputs,
+    outputs,
+  };
+}
+
+const DEFAULT_MODEL = {
+  product: {
+    name: "涤纶纱线",
+    model: "PF-2026",
+    functionalUnit: "1 Piece(s)",
+    quantity: 1,
+    unit: "kg",
+  },
+  stages: [
+    {
+      id: "raw",
+      name: "原料获取",
+      processes: [
+        createProcess({
+          name: "原料预处理",
+          outputName: "预处理切片",
+          quantity: 1,
+          unit: "kg",
+          note: "含筛分和干燥",
+          inputs: [
+            createItem({
+              category: "原材料",
+              name: "再生 PET 切片",
+              quantity: 1.02,
+              unit: "kg",
+              source: "采购台账",
+              factor: {
+                name: "聚对苯二甲酸乙二醇酯（rPET）",
+                value: 2.31,
+                unit: "kg CO2-eq/kg",
+                region: "CN",
+                owner: "CPCD",
+              },
+              transport: {
+                required: true,
+                routes: [
+                  {
+                    id: createId("route"),
+                    name: "PET 切片运输",
+                    weight: 1.02,
+                    from: "苏州",
+                    to: "无锡",
+                    distance: 186,
+                    mode: "公路运输",
+                    factor: {
+                      name: "transport, freight, lorry 16-32 metric ton",
+                      value: 0.168342,
+                      unit: "kg CO2-eq/t*km",
+                      region: "RoW",
+                      owner: "Ecoinvent",
+                    },
+                  },
+                ],
+              },
+            }),
+            createItem({
+              category: "运输",
+              name: "公路运输",
+              quantity: 186,
+              unit: "km",
+              source: "物流系统",
+              factor: {
+                name: "transport, freight, lorry 16-32 metric ton",
+                value: 0.168342,
+                unit: "kg CO2-eq/t*km",
+                region: "RoW",
+                owner: "Ecoinvent",
+              },
+            }),
+          ],
+          outputs: [
+            createItem({
+              category: "固废",
+              name: "筛杂固废",
+              quantity: 0.01,
+              unit: "kg",
+              source: "人工估算",
+              factor: {
+                name: "waste treatment, municipal incineration",
+                value: 0.91,
+                unit: "kg CO2-eq/kg",
+                region: "CN",
+                owner: "CPCD",
+              },
+            }),
+          ],
+        }),
+      ],
+    },
+    {
+      id: "production",
+      name: "生产",
+      processes: [
+        createProcess({
+          name: "纺丝阶段",
+          outputName: "纱线半成品",
+          quantity: 109.06,
+          unit: "kg",
+          note: "主工序，可继续拆分卷绕、加捻等子工序",
+          inputs: [
+            createItem({
+              category: "能源",
+              name: "电网电力",
+              quantity: 96.272,
+              unit: "kWh",
+              source: "电表抄表",
+              factor: {
+                name: "market for electricity, medium voltage",
+                value: 0.578,
+                unit: "kg CO2-eq/kWh",
+                region: "CN",
+                owner: "CPCD",
+              },
+            }),
+            createItem({
+              category: "资源",
+              name: "自来水",
+              quantity: 0.113,
+              unit: "t",
+              source: "水表抄表",
+              factor: {
+                name: "tap water production",
+                value: 0.42,
+                unit: "kg CO2-eq/t",
+                region: "CN",
+                owner: "CPCD",
+              },
+            }),
+          ],
+          outputs: [
+            createItem({
+              category: "废水",
+              name: "废水 COD",
+              quantity: 0.112,
+              unit: "m3",
+              source: "污水监测",
+              factor: {
+                name: "wastewater treatment, COD",
+                value: 0.72,
+                unit: "kg CO2-eq/m3",
+                region: "CN",
+                owner: "CPCD",
+              },
+            }),
+          ],
+        }),
+        createProcess({
+          name: "后整理阶段",
+          outputName: "成品纱线",
+          quantity: 108.4,
+          unit: "kg",
+          note: "示例中用第二道工序表达串行生产",
+          inputs: [
+            createItem({
+              category: "能源",
+              name: "柴油",
+              quantity: 2.116,
+              unit: "kg",
+              source: "能源台账",
+              factor: {
+                name: "diesel combustion",
+                value: 3.2,
+                unit: "kg CO2-eq/kg",
+                region: "CN",
+                owner: "CPCD",
+              },
+            }),
+          ],
+          outputs: [
+            createItem({
+              category: "废水",
+              name: "废水 BOD",
+              quantity: 0.112,
+              unit: "m3",
+              source: "污水监测",
+              factor: {
+                name: "wastewater treatment, BOD",
+                value: 0.63,
+                unit: "kg CO2-eq/m3",
+                region: "CN",
+                owner: "CPCD",
+              },
+            }),
+            createItem({
+              category: "固废",
+              name: "固体废物",
+              quantity: 0.279,
+              unit: "kg",
+              source: "危废台账",
+              factor: {
+                name: "solid waste disposal",
+                value: 0.91,
+                unit: "kg CO2-eq/kg",
+                region: "CN",
+                owner: "CPCD",
+              },
+            }),
+          ],
+        }),
+      ],
+    },
+    {
+      id: "packaging",
+      name: "包装",
+      processes: [
+        createProcess({
+          name: "包装工序",
+          outputName: "包装成品",
+          quantity: 108.55,
+          unit: "kg",
+          inputs: [
+            createItem({
+              category: "包装",
+              name: "纸箱",
+              quantity: 0.12,
+              unit: "kg",
+              source: "BOM",
+              factor: {
+                name: "corrugated board box",
+                value: 1.12,
+                unit: "kg CO2-eq/kg",
+                region: "CN",
+                owner: "CPCD",
+              },
+            }),
+            createItem({
+              category: "包装",
+              name: "缠绕膜",
+              quantity: 0.03,
+              unit: "kg",
+              source: "BOM",
+              factor: {
+                name: "plastic film",
+                value: 2.04,
+                unit: "kg CO2-eq/kg",
+                region: "CN",
+                owner: "CPCD",
+              },
+            }),
+          ],
+          outputs: [],
+        }),
+      ],
+    },
+    {
+      id: "distribution",
+      name: "分销",
+      processes: [
+        createProcess({
+          name: "运输至客户仓",
+          outputName: "已交付产品",
+          quantity: 108.55,
+          unit: "kg",
+          note: "可继续增加仓储、装卸等工序",
+          inputs: [
+            createItem({
+              category: "运输",
+              name: "柴油货车运输",
+              quantity: 580,
+              unit: "km",
+              source: "物流系统",
+              factor: {
+                name: "transport, freight, lorry 16-32 metric ton",
+                value: 0.168342,
+                unit: "kg CO2-eq/t*km",
+                region: "RoW",
+                owner: "Ecoinvent",
+              },
+              transport: {
+                required: true,
+                routes: [
+                  {
+                    id: createId("route"),
+                    name: "成品发运",
+                    weight: 108.55,
+                    from: "无锡",
+                    to: "南京",
+                    distance: 580,
+                    mode: "公路运输",
+                    factor: {
+                      name: "transport, freight, lorry 16-32 metric ton",
+                      value: 0.168342,
+                      unit: "kg CO2-eq/t*km",
+                      region: "RoW",
+                      owner: "Ecoinvent",
+                    },
+                  },
+                ],
+              },
+            }),
+          ],
+          outputs: [],
+        }),
+      ],
+    },
+    {
+      id: "use",
+      name: "使用",
+      processes: [
+        createProcess({
+          name: "产品使用阶段",
+          outputName: "使用后的产品",
+          quantity: 1,
+          unit: "piece",
+          inputs: [
+            createItem({
+              category: "能源",
+              name: "客户端用电",
+              quantity: 8.4,
+              unit: "kWh",
+              source: "场景估算",
+              factor: {
+                name: "use phase electricity",
+                value: 0.578,
+                unit: "kg CO2-eq/kWh",
+                region: "CN",
+                owner: "CPCD",
+              },
+            }),
+          ],
+          outputs: [],
+        }),
+      ],
+    },
+    {
+      id: "end",
+      name: "废弃处理",
+      processes: [
+        createProcess({
+          name: "回收与处置",
+          outputName: "处置完成",
+          quantity: 1,
+          unit: "piece",
+          inputs: [
+            createItem({
+              category: "运输",
+              name: "回收运输",
+              quantity: 65,
+              unit: "km",
+              source: "场景估算",
+              factor: {
+                name: "transport, freight, lorry 16-32 metric ton",
+                value: 0.168342,
+                unit: "kg CO2-eq/t*km",
+                region: "RoW",
+                owner: "Ecoinvent",
+              },
+              transport: {
+                required: true,
+                routes: [
+                  {
+                    id: createId("route"),
+                    name: "回收运输",
+                    weight: 1,
+                    from: "南京",
+                    to: "苏州",
+                    distance: 65,
+                    mode: "公路运输",
+                    factor: {
+                      name: "transport, freight, lorry 16-32 metric ton",
+                      value: 0.168342,
+                      unit: "kg CO2-eq/t*km",
+                      region: "RoW",
+                      owner: "Ecoinvent",
+                    },
+                  },
+                ],
+              },
+            }),
+          ],
+          outputs: [
+            createItem({
+              category: "副产物",
+              name: "回收料",
+              quantity: 0.18,
+              unit: "kg",
+              source: "回收商数据",
+              factor: {
+                name: "recycled material credit",
+                value: -0.42,
+                unit: "kg CO2-eq/kg",
+                region: "CN",
+                owner: "自定义",
+              },
+            }),
+          ],
+        }),
+      ],
+    },
+  ],
+};
+
 const createEditorState = () => ({
   visible: false,
   mode: "create",
@@ -226,6 +490,8 @@ const createEditorState = () => ({
   title: "",
   stageId: "",
   stageName: "",
+  processId: "",
+  processName: "",
   targetId: "",
   currentTab: "basic",
   form: {
@@ -252,7 +518,18 @@ function loadModel() {
       return clone(DEFAULT_MODEL);
     }
     const parsed = JSON.parse(raw);
-    if (!parsed || !Array.isArray(parsed.stages)) {
+    const isValid =
+      parsed &&
+      Array.isArray(parsed.stages) &&
+      parsed.stages.every(
+        (stage) =>
+          Array.isArray(stage.processes) &&
+          stage.processes.every(
+            (process) => Array.isArray(process.inputs) && Array.isArray(process.outputs)
+          )
+      );
+
+    if (!isValid) {
       return clone(DEFAULT_MODEL);
     }
     return parsed;
@@ -269,30 +546,28 @@ createApp({
     const stageCount = computed(() => model.stages.length);
 
     const totalNodeCount = computed(() =>
-      model.stages.reduce(
-        (count, stage) => count + stage.inputs.length + stage.processes.length + stage.outputs.length,
-        0
-      )
+      model.stages.reduce((sum, stage) => {
+        return (
+          sum +
+          stage.processes.reduce((stageSum, process) => {
+            return stageSum + 1 + (process.inputs?.length || 0) + (process.outputs?.length || 0);
+          }, 0)
+        );
+      }, 0)
     );
 
     const totalOutputQuantity = computed(() =>
       model.stages.reduce((sum, stage) => {
-        const stageOutput = stage.processes.reduce(
-          (processSum, process) => processSum + Number(process.quantity || 0),
-          0
+        return (
+          sum +
+          stage.processes.reduce((processSum, process) => processSum + Number(process.quantity || 0), 0)
         );
-        return sum + stageOutput;
       }, 0)
     );
 
     const isItemEditor = computed(() => editor.type !== "process");
 
-    const currentRoute = computed(() => {
-      if (!editor.form.transport || !editor.form.transport.routes.length) {
-        return null;
-      }
-      return editor.form.transport.routes[0];
-    });
+    const currentRoute = computed(() => editor.form.transport?.routes?.[0] || null);
 
     watch(
       model,
@@ -311,28 +586,39 @@ createApp({
     }
 
     function findStage(stageId) {
-      return model.stages.find((stage) => stage.id === stageId);
+      return model.stages.find((stage) => stage.id === stageId) || null;
     }
 
-    function findCollection(stage, type) {
+    function findProcess(stageId, processId) {
+      const stage = findStage(stageId);
+      if (!stage) {
+        return null;
+      }
+      return stage.processes.find((process) => process.id === processId) || null;
+    }
+
+    function findCollection(stageId, type, processId = "") {
+      const stage = findStage(stageId);
       if (!stage) {
         return [];
       }
-      if (type === "input") {
-        return stage.inputs;
+      if (type === "process") {
+        return stage.processes;
       }
-      if (type === "output") {
-        return stage.outputs;
+      const process = findProcess(stageId, processId);
+      if (!process) {
+        return [];
       }
-      return stage.processes;
+      return type === "input" ? process.inputs : process.outputs;
     }
 
-    function getStageProcessLabel(stageId) {
-      const stage = findStage(stageId);
-      if (!stage) {
-        return "";
-      }
-      return stage.processes[0]?.name || stage.name;
+    function getStageProcessLabel(stageId, processId) {
+      const process = findProcess(stageId, processId);
+      return process ? process.name : "";
+    }
+
+    function getProcessIndex(stage, processId) {
+      return stage.processes.findIndex((process) => process.id === processId);
     }
 
     function resetEditorForm(type) {
@@ -352,25 +638,28 @@ createApp({
       editor.currentTab = "basic";
     }
 
-    function openCreateEditor(stageId, type) {
+    function openCreateEditor(stageId, type, processId = "") {
       const stage = findStage(stageId);
+      const process = processId ? findProcess(stageId, processId) : null;
       resetEditorForm(type);
       editor.visible = true;
       editor.mode = "create";
       editor.type = type;
-      editor.currentTab = "basic";
       editor.stageId = stageId;
-      editor.stageName = stage ? stage.name : "";
+      editor.stageName = stage?.name || "";
+      editor.processId = processId;
+      editor.processName = process?.name || "";
       editor.targetId = "";
       editor.title =
         type === "process"
           ? `新增工序 - ${editor.stageName}`
-          : `新增${type === "input" ? "输入" : "输出"} - ${editor.stageName}`;
+          : `新增${type === "input" ? "输入" : "输出"} - ${editor.processName || editor.stageName}`;
     }
 
-    function openEditEditor(stageId, type, targetId) {
+    function openEditEditor(stageId, type, targetId, processId = "") {
       const stage = findStage(stageId);
-      const collection = findCollection(stage, type);
+      const process = processId ? findProcess(stageId, processId) : null;
+      const collection = findCollection(stageId, type, processId);
       const target = collection.find((item) => item.id === targetId);
       if (!stage || !target) {
         return;
@@ -379,14 +668,16 @@ createApp({
       editor.visible = true;
       editor.mode = "edit";
       editor.type = type;
-      editor.currentTab = "basic";
       editor.stageId = stageId;
       editor.stageName = stage.name;
+      editor.processId = processId;
+      editor.processName = process?.name || "";
       editor.targetId = targetId;
+      editor.currentTab = "basic";
       editor.title =
         type === "process"
           ? `编辑工序 - ${stage.name}`
-          : `编辑${type === "input" ? "输入" : "输出"} - ${stage.name}`;
+          : `编辑${type === "input" ? "输入" : "输出"} - ${editor.processName || stage.name}`;
 
       editor.form.category = target.category || (type === "output" ? "废气" : "原材料");
       editor.form.name = target.name || "";
@@ -403,35 +694,6 @@ createApp({
           routes: [],
         }
       );
-    }
-
-    function autoOpenFromQuery() {
-      const params = new URLSearchParams(window.location.search);
-      const openType = params.get("open");
-      if (!openType || !["input", "output", "process"].includes(openType)) {
-        return;
-      }
-
-      const stageId = params.get("stage") || model.stages[0]?.id;
-      const stage = findStage(stageId) || model.stages[0];
-      if (!stage) {
-        return;
-      }
-
-      const collection = findCollection(stage, openType);
-      const index = Number(params.get("index") || 0);
-      const target = collection[index] || collection[0];
-
-      if (target) {
-        openEditEditor(stage.id, openType, target.id);
-      } else {
-        openCreateEditor(stage.id, openType);
-      }
-
-      const tab = params.get("tab");
-      if (tab === "basic" || tab === "transport") {
-        editor.currentTab = tab;
-      }
     }
 
     function closeEditor() {
@@ -471,13 +733,12 @@ createApp({
         };
         return;
       }
-
       editor.form.factor = createDefaultFactor(editor.type, editor.form.category);
     }
 
     function saveEditor() {
       const stage = findStage(editor.stageId);
-      const collection = findCollection(stage, editor.type);
+      const collection = findCollection(editor.stageId, editor.type, editor.processId);
       if (!stage || !collection) {
         return;
       }
@@ -499,22 +760,27 @@ createApp({
         return;
       }
 
-      const payload =
-        editor.type === "process"
-          ? {
-              id: editor.targetId || createId("process"),
-              ...commonPayload,
-              outputName: editor.form.outputName.trim(),
-            }
-          : {
-              id: editor.targetId || createId(editor.type),
-              ...commonPayload,
-              category: editor.form.category,
-              source: editor.form.source.trim(),
-              certificateName: editor.form.certificateName.trim(),
-              factor: clone(editor.form.factor),
-              transport: clone(editor.form.transport),
-            };
+      let payload;
+      if (editor.type === "process") {
+        const previous = editor.mode === "edit" ? findProcess(editor.stageId, editor.targetId) : null;
+        payload = {
+          id: editor.targetId || createId("process"),
+          ...commonPayload,
+          outputName: editor.form.outputName.trim(),
+          inputs: clone(previous?.inputs || []),
+          outputs: clone(previous?.outputs || []),
+        };
+      } else {
+        payload = {
+          id: editor.targetId || createId(editor.type),
+          ...commonPayload,
+          category: editor.form.category,
+          source: editor.form.source.trim(),
+          certificateName: editor.form.certificateName.trim(),
+          factor: clone(editor.form.factor),
+          transport: clone(editor.form.transport),
+        };
+      }
 
       if (editor.mode === "edit") {
         const targetIndex = collection.findIndex((item) => item.id === editor.targetId);
@@ -529,8 +795,7 @@ createApp({
     }
 
     function removeEditorItem() {
-      const stage = findStage(editor.stageId);
-      const collection = findCollection(stage, editor.type);
+      const collection = findCollection(editor.stageId, editor.type, editor.processId);
       const targetIndex = collection.findIndex((item) => item.id === editor.targetId);
       if (targetIndex === -1) {
         return;
@@ -567,6 +832,39 @@ createApp({
       }
     }
 
+    function autoOpenFromQuery() {
+      const params = new URLSearchParams(window.location.search);
+      const openType = params.get("open");
+      if (!openType || !["input", "output", "process"].includes(openType)) {
+        return;
+      }
+
+      const stage = findStage(params.get("stage")) || model.stages[0];
+      if (!stage) {
+        return;
+      }
+
+      const processIndex = Number(params.get("process") || 0);
+      const process = stage.processes[processIndex] || stage.processes[0];
+      const collection =
+        openType === "process"
+          ? stage.processes
+          : findCollection(stage.id, openType, process?.id || "");
+      const index = Number(params.get("index") || 0);
+      const target = collection[index] || collection[0];
+
+      if (target) {
+        openEditEditor(stage.id, openType, target.id, process?.id || "");
+      } else {
+        openCreateEditor(stage.id, openType, process?.id || "");
+      }
+
+      const tab = params.get("tab");
+      if (tab === "basic" || tab === "transport") {
+        editor.currentTab = tab;
+      }
+    }
+
     autoOpenFromQuery();
 
     return {
@@ -579,6 +877,7 @@ createApp({
       currentRoute,
       formatNumber,
       getStageProcessLabel,
+      getProcessIndex,
       openCreateEditor,
       openEditEditor,
       closeEditor,
