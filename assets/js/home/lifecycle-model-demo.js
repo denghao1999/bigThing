@@ -79,6 +79,15 @@ function createItem({
 }
 
 function createProcess({ name, outputName, quantity, unit, note = "", inputs = [], outputs = [] }) {
+  const primaryProduct = {
+    id: createId("product"),
+    name: outputName || "",
+    ratio: 100,
+    quantity: quantity || 0,
+    unit: unit || "kg",
+    isMain: true,
+  };
+
   return {
     id: createId("process"),
     name,
@@ -88,6 +97,12 @@ function createProcess({ name, outputName, quantity, unit, note = "", inputs = [
     note,
     inputs,
     outputs,
+    products: [primaryProduct],
+    referenceInput: {
+      enabled: false,
+      sourceProcessId: "",
+      sourceProductId: "",
+    },
   };
 }
 
@@ -532,6 +547,32 @@ function loadModel() {
     if (!isValid) {
       return clone(DEFAULT_MODEL);
     }
+
+    parsed.stages.forEach((stage) => {
+      stage.processes.forEach((process) => {
+        if (!Array.isArray(process.products) || !process.products.length) {
+          process.products = [
+            {
+              id: createId("product"),
+              name: process.outputName || "",
+              ratio: 100,
+              quantity: Number(process.quantity || 0),
+              unit: process.unit || "kg",
+              isMain: true,
+            },
+          ];
+        }
+
+        if (!process.referenceInput) {
+          process.referenceInput = {
+            enabled: false,
+            sourceProcessId: "",
+            sourceProductId: "",
+          };
+        }
+      });
+    });
+
     return parsed;
   } catch (error) {
     return clone(DEFAULT_MODEL);
@@ -568,6 +609,28 @@ createApp({
     const isItemEditor = computed(() => editor.type !== "process");
 
     const currentRoute = computed(() => editor.form.transport?.routes?.[0] || null);
+
+    const availableReferenceProcesses = computed(() => {
+      if (editor.type !== "process") {
+        return [];
+      }
+
+      const currentStage = findStage(editor.stageId);
+      if (!currentStage) {
+        return [];
+      }
+
+      return currentStage.processes.filter((process) => process.id !== editor.targetId);
+    });
+
+    const availableReferenceProducts = computed(() => {
+      if (editor.type !== "process") {
+        return [];
+      }
+
+      const sourceProcess = findProcess(editor.stageId, editor.form.referenceInput.sourceProcessId);
+      return sourceProcess?.products || [];
+    });
 
     watch(
       model,
@@ -635,6 +698,21 @@ createApp({
         required: false,
         routes: [],
       };
+      editor.form.products = [
+        {
+          id: createId("product"),
+          name: "",
+          ratio: 100,
+          quantity: 0,
+          unit: model.product.unit,
+          isMain: true,
+        },
+      ];
+      editor.form.referenceInput = {
+        enabled: false,
+        sourceProcessId: "",
+        sourceProductId: "",
+      };
       editor.currentTab = "basic";
     }
 
@@ -694,6 +772,25 @@ createApp({
           routes: [],
         }
       );
+      editor.form.products = clone(
+        target.products || [
+          {
+            id: createId("product"),
+            name: target.outputName || "",
+            ratio: 100,
+            quantity: Number(target.quantity || 0),
+            unit: target.unit || model.product.unit,
+            isMain: true,
+          },
+        ]
+      );
+      editor.form.referenceInput = clone(
+        target.referenceInput || {
+          enabled: false,
+          sourceProcessId: "",
+          sourceProductId: "",
+        }
+      );
     }
 
     function closeEditor() {
@@ -702,6 +799,70 @@ createApp({
 
     function setEditorTab(tab) {
       editor.currentTab = tab;
+    }
+
+    function addProcessProduct(isMain = false) {
+      if (!Array.isArray(editor.form.products)) {
+        editor.form.products = [];
+      }
+
+      if (isMain) {
+        editor.form.products.forEach((product) => {
+          product.isMain = false;
+          product.ratio = Number(product.ratio || 0);
+        });
+      }
+
+      editor.form.products.push({
+        id: createId("product"),
+        name: "",
+        ratio: isMain ? 100 : 0,
+        quantity: 0,
+        unit: model.product.unit,
+        isMain,
+      });
+    }
+
+    function removeProcessProduct(productId) {
+      if (!Array.isArray(editor.form.products)) {
+        return;
+      }
+
+      const index = editor.form.products.findIndex((product) => product.id === productId);
+      if (index === -1) {
+        return;
+      }
+
+      editor.form.products.splice(index, 1);
+
+      if (!editor.form.products.some((product) => product.isMain) && editor.form.products[0]) {
+        editor.form.products[0].isMain = true;
+        if (!Number(editor.form.products[0].ratio)) {
+          editor.form.products[0].ratio = 100;
+        }
+      }
+    }
+
+    function setMainProduct(productId) {
+      editor.form.products.forEach((product) => {
+        product.isMain = product.id === productId;
+        if (product.isMain && !Number(product.ratio)) {
+          product.ratio = 100;
+        }
+      });
+    }
+
+    function setReferenceInputEnabled(enabled) {
+      editor.form.referenceInput.enabled = enabled;
+      if (!enabled) {
+        editor.form.referenceInput.sourceProcessId = "";
+        editor.form.referenceInput.sourceProductId = "";
+      }
+    }
+
+    function handleReferenceProcessChange() {
+      const firstProduct = availableReferenceProducts.value[0];
+      editor.form.referenceInput.sourceProductId = firstProduct ? firstProduct.id : "";
     }
 
     function setTransportRequired(required) {
@@ -756,19 +917,43 @@ createApp({
       }
 
       if (editor.type === "process" && !editor.form.outputName.trim()) {
-        window.alert("请填写产出物名称。");
-        return;
+        // Legacy field, ignored by process editor.
       }
 
       let payload;
       if (editor.type === "process") {
+        if (!Array.isArray(editor.form.products) || editor.form.products.length === 0) {
+          window.alert("请至少添加一个产出物。");
+          return;
+        }
+
         const previous = editor.mode === "edit" ? findProcess(editor.stageId, editor.targetId) : null;
+        const normalizedProducts = (editor.form.products || []).map((product, index) => ({
+          id: product.id || createId("product"),
+          name: (product.name || "").trim(),
+          ratio: Number(product.ratio || 0),
+          quantity: Number(product.quantity || 0),
+          unit: (product.unit || model.product.unit).trim(),
+          isMain: product.isMain || index === 0,
+        }));
+        const mainProduct =
+          normalizedProducts.find((product) => product.isMain) || normalizedProducts[0] || null;
+
+        if (!mainProduct || !mainProduct.name || !mainProduct.unit) {
+          window.alert("请完善主产出物的名称和单位。");
+          return;
+        }
+
         payload = {
           id: editor.targetId || createId("process"),
           ...commonPayload,
-          outputName: editor.form.outputName.trim(),
+          outputName: mainProduct?.name || editor.form.outputName.trim(),
+          quantity: mainProduct?.quantity ?? Number(editor.form.quantity || 0),
+          unit: mainProduct?.unit || editor.form.unit.trim(),
           inputs: clone(previous?.inputs || []),
           outputs: clone(previous?.outputs || []),
+          products: normalizedProducts,
+          referenceInput: clone(editor.form.referenceInput),
         };
       } else {
         payload = {
@@ -875,6 +1060,8 @@ createApp({
       totalOutputQuantity,
       isItemEditor,
       currentRoute,
+      availableReferenceProcesses,
+      availableReferenceProducts,
       formatNumber,
       getStageProcessLabel,
       getProcessIndex,
@@ -882,6 +1069,11 @@ createApp({
       openEditEditor,
       closeEditor,
       setEditorTab,
+      addProcessProduct,
+      removeProcessProduct,
+      setMainProduct,
+      setReferenceInputEnabled,
+      handleReferenceProcessChange,
       setTransportRequired,
       applyMockFactor,
       saveEditor,

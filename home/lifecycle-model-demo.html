@@ -212,7 +212,7 @@
                 {{
                   isItemEditor
                     ? (editor.type === 'input' ? '输入' : '输出')
-                    : editor.title
+                    : '工序'
                 }}
               </h2>
               <span v-if="isItemEditor" class="lcm-inspector__guide">操作指南 ?</span>
@@ -482,23 +482,138 @@
                   <span class="lcm-field__label is-required">工序名称</span>
                   <input class="lcm-input" v-model.trim="editor.form.name" placeholder="请输入工序名称" required />
                 </label>
+              </div>
 
-                <label class="lcm-field">
-                  <span class="lcm-field__label is-required">产出物名称</span>
-                  <input class="lcm-input" v-model.trim="editor.form.outputName" placeholder="如：纱线半成品" required />
-                </label>
+              <div class="lcm-sheet__section">
+                <div class="lcm-process-section">
+                  <div class="lcm-process-section__header">
+                    <span class="lcm-process-section__caret">▼</span>
+                    <span class="lcm-process-section__title">产出物</span>
+                  </div>
 
-                <div class="lcm-field-grid">
-                  <label class="lcm-field">
-                    <span class="lcm-field__label">数量</span>
-                    <input class="lcm-input" v-model="editor.form.quantity" type="number" min="0" step="0.001" required />
-                  </label>
-                  <label class="lcm-field">
-                    <span class="lcm-field__label">单位</span>
-                    <input class="lcm-input" v-model.trim="editor.form.unit" placeholder="kg / piece" required />
-                  </label>
+                  <div
+                    class="lcm-process-product"
+                    v-for="(product, productIndex) in editor.form.products"
+                    :key="product.id"
+                  >
+                    <div class="lcm-process-product__top">
+                      <label class="lcm-checkline">
+                        <input
+                          type="radio"
+                          name="mainProduct"
+                          :checked="product.isMain"
+                          @change="setMainProduct(product.id)"
+                        />
+                        <span>{{ product.isMain ? '主产出物' : '副产出物' }}</span>
+                      </label>
+                      <button
+                        v-if="editor.form.products.length > 1"
+                        class="lcm-table-icon-btn"
+                        type="button"
+                        @click="removeProcessProduct(product.id)"
+                      >
+                        删除
+                      </button>
+                    </div>
+
+                    <div class="lcm-field-grid lcm-field-grid--process-product">
+                      <label class="lcm-field">
+                        <span class="lcm-field__label is-required">名称</span>
+                        <input class="lcm-input" v-model.trim="product.name" placeholder="产物名称" required />
+                      </label>
+                      <label class="lcm-field">
+                        <span class="lcm-field__label">占比（%）</span>
+                        <input class="lcm-input" v-model="product.ratio" type="number" min="0" step="0.01" placeholder="100" />
+                      </label>
+                    </div>
+
+                    <div class="lcm-field-grid lcm-field-grid--process-product">
+                      <label class="lcm-field">
+                        <span class="lcm-field__label">数量</span>
+                        <input class="lcm-input" v-model="product.quantity" type="number" min="0" step="0.001" required />
+                      </label>
+                      <label class="lcm-field">
+                        <span class="lcm-field__label">单位</span>
+                        <input class="lcm-input" v-model.trim="product.unit" placeholder="常用单位组/kg" required />
+                      </label>
+                    </div>
+                  </div>
+
+                  <div class="lcm-process-links">
+                    <button class="lcm-process-link" type="button" @click="addProcessProduct(false)">
+                      + 添加产出物
+                    </button>
+                    <button class="lcm-process-link" type="button" @click="addProcessProduct(false)">
+                      + 添加副产出物
+                    </button>
+                  </div>
+
+                  <div class="lcm-process-reference">
+                    <p class="lcm-process-reference__hint">可用其他工序产出物作为该工序的输入。</p>
+                    <div class="lcm-segmented lcm-segmented--compact">
+                      <button
+                        class="lcm-segmented__item"
+                        :class="{ 'is-active': editor.form.referenceInput.enabled }"
+                        type="button"
+                        @click="setReferenceInputEnabled(true)"
+                      >
+                        引用
+                      </button>
+                      <button
+                        class="lcm-segmented__item"
+                        :class="{ 'is-active': !editor.form.referenceInput.enabled }"
+                        type="button"
+                        @click="setReferenceInputEnabled(false)"
+                      >
+                        不引用
+                      </button>
+                    </div>
+
+                    <div v-if="editor.form.referenceInput.enabled" class="lcm-reference-card">
+                      <div class="lcm-field-grid lcm-field-grid--reference">
+                        <label class="lcm-field">
+                          <span class="lcm-field__label">类型</span>
+                          <select class="lcm-input">
+                            <option value="other">其他工序产物</option>
+                          </select>
+                        </label>
+                        <label class="lcm-field">
+                          <span class="lcm-field__label">工序</span>
+                          <select
+                            class="lcm-input"
+                            v-model="editor.form.referenceInput.sourceProcessId"
+                            @change="handleReferenceProcessChange"
+                          >
+                            <option value="">请选择工序</option>
+                            <option
+                              v-for="process in availableReferenceProcesses"
+                              :key="process.id"
+                              :value="process.id"
+                            >
+                              {{ process.name }}
+                            </option>
+                          </select>
+                        </label>
+                        <label class="lcm-field">
+                          <span class="lcm-field__label">产物</span>
+                          <select class="lcm-input" v-model="editor.form.referenceInput.sourceProductId">
+                            <option value="">请选择产物</option>
+                            <option
+                              v-for="product in availableReferenceProducts"
+                              :key="product.id"
+                              :value="product.id"
+                            >
+                              {{ product.name || '未命名产物' }}
+                            </option>
+                          </select>
+                        </label>
+                      </div>
+                    </div>
+                  </div>
                 </div>
+              </div>
 
+              <div class="lcm-sheet__section">
                 <label class="lcm-field">
                   <span class="lcm-field__label">说明</span>
                   <textarea class="lcm-textarea" v-model.trim="editor.form.note" rows="6" placeholder="补充工序说明"></textarea>
