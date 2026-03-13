@@ -1,0 +1,268 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta http-equiv="X-UA-Compatible" content="ie=edge" />
+    <title>生命周期建模 Demo</title>
+    <link rel="stylesheet" href="../assets/lib/bootstrap.css" />
+    <link rel="stylesheet" href="../assets/lib/main.css" />
+    <link rel="stylesheet" href="../assets/css/home/lifecycle-model-demo.css" />
+  </head>
+  <body>
+    <div id="app" class="lcm-page">
+      <header class="lcm-header">
+        <div class="lcm-header__main">
+          <h1 class="lcm-title">生命周期建模</h1>
+          <div class="lcm-header__meta">
+            <span>{{ model.product.name }}</span>
+            <span>{{ model.product.model }}</span>
+            <span>{{ stageCount }} 个环节</span>
+            <span>{{ totalNodeCount }} 个节点</span>
+          </div>
+        </div>
+        <div class="lcm-actions">
+          <button class="lcm-btn lcm-btn--ghost" type="button" @click="resetModel">恢复示例数据</button>
+          <button class="lcm-btn lcm-btn--primary" type="button" @click="copyModelJson">复制模型 JSON</button>
+        </div>
+      </header>
+
+      <section class="lcm-board">
+        <div class="lcm-grid-head lcm-grid-head--blank"></div>
+        <div class="lcm-grid-head lcm-grid-head--left">
+          <span class="lcm-grid-head__title">输入清单</span>
+          <span class="lcm-grid-head__desc">原料 / 耗材 / 能源 / 资源 / 运输</span>
+        </div>
+        <div class="lcm-product-card">
+          <div class="lcm-product-card__icon">产</div>
+          <div class="lcm-product-card__main">
+            <div class="lcm-product-card__name">{{ model.product.name }}</div>
+            <div class="lcm-product-card__meta">
+              {{ model.product.model }} · {{ model.product.functionalUnit }}
+            </div>
+          </div>
+          <div class="lcm-product-card__stat">
+            <div class="lcm-product-card__stat-label">总产出</div>
+            <div class="lcm-product-card__stat-value">
+              {{ formatNumber(totalOutputQuantity) }} {{ model.product.unit }}
+            </div>
+          </div>
+        </div>
+        <div class="lcm-grid-head lcm-grid-head--right">
+          <span class="lcm-grid-head__title">输出清单</span>
+          <span class="lcm-grid-head__desc">废气 / 废水 / 固废 / 副产物</span>
+        </div>
+
+        <template v-for="stage in model.stages" :key="stage.id">
+          <div class="lcm-stage-label" :class="{ 'is-selected': editor.stageId === stage.id }">
+            <span>{{ stage.name }}</span>
+          </div>
+
+          <section class="lcm-lane lcm-lane--input">
+            <div class="lcm-lane__toolbar">
+              <div>
+                <div class="lcm-lane__title">输入</div>
+                <div class="lcm-lane__meta">{{ stage.inputs.length }} 项</div>
+              </div>
+              <button class="lcm-mini-btn" type="button" @click="openCreateEditor(stage.id, 'input')">
+                + 添加输入
+              </button>
+            </div>
+
+            <div class="lcm-lane__list" v-if="stage.inputs.length">
+              <article
+                v-for="item in stage.inputs"
+                :key="item.id"
+                class="lcm-item-card lcm-item-card--input"
+                @click="openEditEditor(stage.id, 'input', item.id)"
+              >
+                <div class="lcm-item-card__top">
+                  <span class="lcm-item-card__tag">{{ item.category }}</span>
+                  <span class="lcm-item-card__value">{{ formatNumber(item.quantity) }} {{ item.unit }}</span>
+                </div>
+                <div class="lcm-item-card__name">{{ item.name }}</div>
+                <div class="lcm-item-card__foot">{{ item.source || '未填写来源' }}</div>
+              </article>
+            </div>
+            <button
+              v-else
+              class="lcm-empty-btn"
+              type="button"
+              @click="openCreateEditor(stage.id, 'input')"
+            >
+              + 添加输入
+            </button>
+          </section>
+
+          <section class="lcm-lane lcm-lane--process">
+            <div class="lcm-lane__toolbar">
+              <div>
+                <div class="lcm-lane__title">工序</div>
+                <div class="lcm-lane__meta">{{ stage.processes.length }} 道</div>
+              </div>
+              <button class="lcm-mini-btn" type="button" @click="openCreateEditor(stage.id, 'process')">
+                + 添加工序
+              </button>
+            </div>
+
+            <div class="lcm-process-list" v-if="stage.processes.length">
+              <article
+                v-for="(process, processIndex) in stage.processes"
+                :key="process.id"
+                class="lcm-process-card"
+                @click="openEditEditor(stage.id, 'process', process.id)"
+              >
+                <div class="lcm-process-card__badge">{{ processIndex + 1 }}</div>
+                <div class="lcm-process-card__main">
+                  <div class="lcm-process-card__name">{{ process.name }}</div>
+                  <div class="lcm-process-card__output">
+                    产出物：{{ process.outputName }}
+                  </div>
+                </div>
+                <div class="lcm-process-card__value">
+                  {{ formatNumber(process.quantity) }} {{ process.unit }}
+                </div>
+              </article>
+            </div>
+            <button
+              v-else
+              class="lcm-empty-btn"
+              type="button"
+              @click="openCreateEditor(stage.id, 'process')"
+            >
+              + 添加工序
+            </button>
+          </section>
+
+          <section class="lcm-lane lcm-lane--output">
+            <div class="lcm-lane__toolbar">
+              <div>
+                <div class="lcm-lane__title">输出</div>
+                <div class="lcm-lane__meta">{{ stage.outputs.length }} 项</div>
+              </div>
+              <button class="lcm-mini-btn" type="button" @click="openCreateEditor(stage.id, 'output')">
+                + 添加输出
+              </button>
+            </div>
+
+            <div class="lcm-lane__list" v-if="stage.outputs.length">
+              <article
+                v-for="item in stage.outputs"
+                :key="item.id"
+                class="lcm-item-card lcm-item-card--output"
+                @click="openEditEditor(stage.id, 'output', item.id)"
+              >
+                <div class="lcm-item-card__top">
+                  <span class="lcm-item-card__tag">{{ item.category }}</span>
+                  <span class="lcm-item-card__value">{{ formatNumber(item.quantity) }} {{ item.unit }}</span>
+                </div>
+                <div class="lcm-item-card__name">{{ item.name }}</div>
+                <div class="lcm-item-card__foot">{{ item.source || '未填写来源' }}</div>
+              </article>
+            </div>
+            <button
+              v-else
+              class="lcm-empty-btn"
+              type="button"
+              @click="openCreateEditor(stage.id, 'output')"
+            >
+              + 添加输出
+            </button>
+          </section>
+        </template>
+      </section>
+
+      <div class="lcm-drawer-mask" v-if="editor.visible" @click="closeEditor"></div>
+      <aside class="lcm-inspector" :class="{ 'is-open': editor.visible }">
+        <div class="lcm-inspector__header">
+          <div>
+            <p class="lcm-inspector__eyebrow">编辑面板</p>
+            <h2 class="lcm-inspector__title">
+              {{ editor.visible ? editor.title : '选择一个节点开始编辑' }}
+            </h2>
+          </div>
+          <button
+            class="lcm-icon-btn"
+            type="button"
+            aria-label="关闭"
+            @click="closeEditor"
+          >
+            ×
+          </button>
+        </div>
+
+        <template v-if="editor.visible">
+          <form class="lcm-form" @submit.prevent="saveEditor">
+            <label class="lcm-field">
+              <span class="lcm-field__label">所属环节</span>
+              <input class="lcm-input" :value="editor.stageName" disabled />
+            </label>
+
+            <label class="lcm-field" v-if="editor.type !== 'process'">
+              <span class="lcm-field__label">清单类型</span>
+              <select class="lcm-input" v-model="editor.form.category">
+                <option value="原材料">原材料</option>
+                <option value="耗材">耗材</option>
+                <option value="能源">能源</option>
+                <option value="资源">资源</option>
+                <option value="包装">包装</option>
+                <option value="运输">运输</option>
+                <option value="废气">废气</option>
+                <option value="废水">废水</option>
+                <option value="固废">固废</option>
+                <option value="副产物">副产物</option>
+              </select>
+            </label>
+
+            <label class="lcm-field">
+              <span class="lcm-field__label">{{ editor.type === 'process' ? '工序名称' : '清单名称' }}</span>
+              <input class="lcm-input" v-model.trim="editor.form.name" placeholder="请输入名称" required />
+            </label>
+
+            <label class="lcm-field" v-if="editor.type === 'process'">
+              <span class="lcm-field__label">产出物名称</span>
+              <input class="lcm-input" v-model.trim="editor.form.outputName" placeholder="如：纱线半成品" required />
+            </label>
+
+            <div class="lcm-field-grid">
+              <label class="lcm-field">
+                <span class="lcm-field__label">数量</span>
+                <input class="lcm-input" v-model="editor.form.quantity" type="number" min="0" step="0.001" required />
+              </label>
+              <label class="lcm-field">
+                <span class="lcm-field__label">单位</span>
+                <input class="lcm-input" v-model.trim="editor.form.unit" placeholder="kg / kWh / km" required />
+              </label>
+            </div>
+
+            <label class="lcm-field" v-if="editor.type !== 'process'">
+              <span class="lcm-field__label">数据来源</span>
+              <input class="lcm-input" v-model.trim="editor.form.source" placeholder="ERP / 手工填报 / 统计台账" />
+            </label>
+
+            <label class="lcm-field">
+              <span class="lcm-field__label">说明</span>
+              <textarea class="lcm-textarea" v-model.trim="editor.form.note" rows="4" placeholder="补充规则、换算关系或备注"></textarea>
+            </label>
+
+            <div class="lcm-form__actions">
+              <button class="lcm-btn lcm-btn--primary" type="submit">保存</button>
+              <button class="lcm-btn lcm-btn--ghost" type="button" @click="closeEditor">取消</button>
+              <button
+                v-if="editor.mode === 'edit'"
+                class="lcm-btn lcm-btn--danger"
+                type="button"
+                @click="removeEditorItem"
+              >
+                删除
+              </button>
+            </div>
+          </form>
+        </template>
+      </aside>
+    </div>
+
+    <script src="../assets/lib/vue/vue.global.prod.js"></script>
+    <script src="../assets/js/home/lifecycle-model-demo.js"></script>
+  </body>
+</html>

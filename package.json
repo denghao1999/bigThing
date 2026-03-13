@@ -1,0 +1,23 @@
+{
+  "name": "workspace",
+  "version": "1.0.0",
+  "description": "这个仓库里新增了一个可在浏览器运行的贪吃蛇页面：`home/snake.html`。",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/denghao1999/bigThing.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/denghao1999/bigThing/issues"
+  },
+  "homepage": "https://github.com/denghao1999/bigThing#readme",
+  "dependencies": {
+    "vue": "^3.5.30"
+  }
+}
