@@ -60,6 +60,9 @@ function createItem({
   certificateName = "",
   factor,
   transport,
+  isReference = false,
+  sourceProcessId = "",
+  sourceProductId = "",
 }) {
   return {
     id: createId("item"),
@@ -75,6 +78,9 @@ function createItem({
       required: false,
       routes: [],
     },
+    isReference,
+    sourceProcessId,
+    sourceProductId,
   };
 }
 
@@ -700,27 +706,45 @@ createApp({
     }
 
     function getDisplayInputs(stageId, process) {
-      const displayInputs = [...(process.inputs || [])];
+      const displayInputs = (process.inputs || []).map((item) => {
+        if (!item.isReference) {
+          return item;
+        }
 
-      if (process.referenceInput?.enabled) {
-        const sourceProcess = findProcess(stageId, process.referenceInput.sourceProcessId);
+        const sourceProcess = findProcess(stageId, item.sourceProcessId);
         const sourceProduct =
-          sourceProcess?.products?.find(
-            (product) => product.id === process.referenceInput.sourceProductId
-          ) || sourceProcess?.products?.[0];
+          sourceProcess?.products?.find((product) => product.id === item.sourceProductId) ||
+          sourceProcess?.products?.[0];
 
-        if (sourceProcess && sourceProduct) {
+        if (!sourceProcess || !sourceProduct) {
+          return item;
+        }
+
+        return {
+          ...item,
+          name: sourceProduct.name || item.name || "未命名产物",
+          quantity: Number(sourceProduct.quantity || item.quantity || 0),
+          unit: sourceProduct.unit || item.unit || model.product.unit,
+          source: sourceProcess.name,
+          sourceProcessName: sourceProcess.name,
+          sourceProductName: sourceProduct.name || item.name || "未命名产物",
+        };
+      });
+
+      const hasReferenceItem = displayInputs.some((item) => item.isReference);
+      if (!hasReferenceItem && process.referenceInput?.enabled) {
+        const fallbackReference = buildReferenceInputRecord(stageId, process.referenceInput);
+        if (fallbackReference) {
+          const sourceProcess = findProcess(stageId, fallbackReference.sourceProcessId);
+          const sourceProduct =
+            sourceProcess?.products?.find(
+              (product) => product.id === fallbackReference.sourceProductId
+            ) || sourceProcess?.products?.[0];
+
           displayInputs.unshift({
-            id: `ref_${process.id}_${sourceProduct.id}`,
-            category: "其他工序产物",
-            name: sourceProduct.name || "未命名产物",
-            quantity: Number(sourceProduct.quantity || 0),
-            unit: sourceProduct.unit || model.product.unit,
-            source: sourceProcess.name,
-            note: "",
-            isReference: true,
-            sourceProcessName: sourceProcess.name,
-            sourceProductName: sourceProduct.name || "未命名产物",
+            ...fallbackReference,
+            sourceProcessName: sourceProcess?.name || "",
+            sourceProductName: sourceProduct?.name || fallbackReference.name,
           });
         }
       }
@@ -926,6 +950,39 @@ createApp({
       editor.form.referenceInput.sourceProductId = firstProduct ? firstProduct.id : "";
     }
 
+    function buildReferenceInputRecord(stageId, referenceInput, existingId = "") {
+      if (!referenceInput?.enabled || !referenceInput.sourceProcessId || !referenceInput.sourceProductId) {
+        return null;
+      }
+
+      const sourceProcess = findProcess(stageId, referenceInput.sourceProcessId);
+      const sourceProduct =
+        sourceProcess?.products?.find((product) => product.id === referenceInput.sourceProductId) ||
+        sourceProcess?.products?.[0];
+
+      if (!sourceProcess || !sourceProduct) {
+        return null;
+      }
+
+      return createItem({
+        category: "其他工序产物",
+        name: sourceProduct.name || "未命名产物",
+        quantity: Number(sourceProduct.quantity || 0),
+        unit: sourceProduct.unit || model.product.unit,
+        source: sourceProcess.name,
+        note: "",
+        factor: createDefaultFactor("input", "其他工序产物"),
+        transport: {
+          required: false,
+          routes: [],
+        },
+        isReference: true,
+        sourceProcessId: sourceProcess.id,
+        sourceProductId: sourceProduct.id,
+        certificateName: "",
+      });
+    }
+
     function setTransportRequired(required) {
       editor.form.transport.required = required;
       if (required && editor.form.transport.routes.length === 0) {
@@ -1005,13 +1062,24 @@ createApp({
           return;
         }
 
+        const previousInputs = clone(previous?.inputs || []).filter((item) => !item.isReference);
+        const existingReference = clone(previous?.inputs || []).find((item) => item.isReference);
+        const referenceRecord = buildReferenceInputRecord(
+          editor.stageId,
+          editor.form.referenceInput,
+          existingReference?.id || ""
+        );
+        if (referenceRecord) {
+          previousInputs.unshift(referenceRecord);
+        }
+
         payload = {
           id: editor.targetId || createId("process"),
           ...commonPayload,
           outputName: mainProduct?.name || editor.form.outputName.trim(),
           quantity: mainProduct?.quantity ?? Number(editor.form.quantity || 0),
           unit: mainProduct?.unit || editor.form.unit.trim(),
-          inputs: clone(previous?.inputs || []),
+          inputs: previousInputs,
           outputs: clone(previous?.outputs || []),
           products: normalizedProducts,
           referenceInput: clone(editor.form.referenceInput),
