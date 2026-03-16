@@ -892,6 +892,12 @@
   margin-bottom: 10px;
 }
 
+.lcm-process-product__index {
+  color: #475569;
+  font-size: 12px;
+  font-weight: 700;
+}
+
 .lcm-checkline {
   display: inline-flex;
   align-items: center;
@@ -945,7 +951,7 @@
 }
 
 .lcm-field-grid--reference {
-  grid-template-columns: 1fr 1fr 1fr;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
 }
 
 .lcm-reference-preview {

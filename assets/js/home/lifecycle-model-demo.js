@@ -61,6 +61,7 @@ function createItem({
   factor,
   transport,
   isReference = false,
+  sourceStageId = "",
   sourceProcessId = "",
   sourceProductId = "",
 }) {
@@ -79,6 +80,7 @@ function createItem({
       routes: [],
     },
     isReference,
+    sourceStageId,
     sourceProcessId,
     sourceProductId,
   };
@@ -91,7 +93,7 @@ function createProcess({ name, outputName, quantity, unit, note = "", inputs = [
     ratio: 100,
     quantity: quantity || 0,
     unit: unit || "kg",
-    isMain: true,
+    kind: "main",
   };
 
   return {
@@ -510,6 +512,7 @@ if (productionStage && productionStage.processes.length >= 2) {
   const targetProcess = productionStage.processes[1];
   targetProcess.referenceInput = {
     enabled: true,
+    sourceStageId: productionStage.id,
     sourceProcessId: sourceProcess.id,
     sourceProductId: sourceProcess.products[0]?.id || "",
   };
@@ -543,6 +546,12 @@ const createEditorState = () => ({
   },
 });
 
+function findStageByProcessIdStatic(stages, processId) {
+  return stages.find((stage) =>
+    stage.processes.some((process) => process.id === processId)
+  ) || null;
+}
+
 function loadModel() {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
@@ -575,17 +584,29 @@ function loadModel() {
               ratio: 100,
               quantity: Number(process.quantity || 0),
               unit: process.unit || "kg",
-              isMain: true,
+              kind: "main",
             },
           ];
         }
 
+        process.products = process.products.map((product, index) => ({
+          ...product,
+          kind: product.kind || (product.isMain || index === 0 ? "main" : "byproduct"),
+        }));
+
         if (!process.referenceInput) {
           process.referenceInput = {
             enabled: false,
+            sourceStageId: "",
             sourceProcessId: "",
             sourceProductId: "",
           };
+        }
+
+        if (process.referenceInput.sourceProcessId && !process.referenceInput.sourceStageId) {
+          process.referenceInput.sourceStageId =
+            findStageByProcessIdStatic(parsed.stages, process.referenceInput.sourceProcessId)?.id ||
+            "";
         }
       });
     });
@@ -631,13 +652,19 @@ createApp({
       if (editor.type !== "process") {
         return [];
       }
+      const targetStages = editor.form.referenceInput.sourceStageId
+        ? model.stages.filter((stage) => stage.id === editor.form.referenceInput.sourceStageId)
+        : model.stages;
 
-      const currentStage = findStage(editor.stageId);
-      if (!currentStage) {
-        return [];
-      }
-
-      return currentStage.processes.filter((process) => process.id !== editor.processId);
+      return targetStages.flatMap((stage) =>
+        stage.processes
+          .filter((process) => process.id !== editor.processId)
+          .map((process) => ({
+            ...process,
+            stageId: stage.id,
+            stageName: stage.name,
+          }))
+      );
     });
 
     const availableReferenceProducts = computed(() => {
@@ -645,7 +672,10 @@ createApp({
         return [];
       }
 
-      const sourceProcess = findProcess(editor.stageId, editor.form.referenceInput.sourceProcessId);
+      const sourceProcess = findProcess(
+        editor.form.referenceInput.sourceStageId || editor.stageId,
+        editor.form.referenceInput.sourceProcessId
+      );
       return sourceProcess?.products || [];
     });
 
@@ -670,11 +700,32 @@ createApp({
     }
 
     function findProcess(stageId, processId) {
-      const stage = findStage(stageId);
-      if (!stage) {
+      if (processId === undefined) {
+        const globalProcessId = stageId;
+        for (const stage of model.stages) {
+          const target = stage.processes.find((process) => process.id === globalProcessId);
+          if (target) {
+            return target;
+          }
+        }
         return null;
       }
-      return stage.processes.find((process) => process.id === processId) || null;
+
+      const stage = findStage(stageId);
+      if (stage) {
+        const target = stage.processes.find((process) => process.id === processId);
+        if (target) {
+          return target;
+        }
+      }
+
+      return findProcess(processId);
+    }
+
+    function findStageByProcessId(processId) {
+      return model.stages.find((stage) =>
+        stage.processes.some((process) => process.id === processId)
+      ) || null;
     }
 
     function findCollection(stageId, type, processId = "") {
@@ -702,7 +753,7 @@ createApp({
     }
 
     function getPrimaryProduct(process) {
-      return process.products?.find((product) => product.isMain) || process.products?.[0] || null;
+      return process.products?.find((product) => product.kind === "main") || process.products?.[0] || null;
     }
 
     function getDisplayInputs(stageId, process) {
@@ -712,6 +763,7 @@ createApp({
         }
 
         const sourceProcess = findProcess(stageId, item.sourceProcessId);
+        const sourceStage = item.sourceStageId ? findStage(item.sourceStageId) : findStageByProcessId(item.sourceProcessId);
         const sourceProduct =
           sourceProcess?.products?.find((product) => product.id === item.sourceProductId) ||
           sourceProcess?.products?.[0];
@@ -726,6 +778,7 @@ createApp({
           quantity: Number(sourceProduct.quantity || item.quantity || 0),
           unit: sourceProduct.unit || item.unit || model.product.unit,
           source: sourceProcess.name,
+          sourceStageName: sourceStage?.name || "",
           sourceProcessName: sourceProcess.name,
           sourceProductName: sourceProduct.name || item.name || "未命名产物",
         };
@@ -736,6 +789,7 @@ createApp({
         const fallbackReference = buildReferenceInputRecord(stageId, process.referenceInput);
         if (fallbackReference) {
           const sourceProcess = findProcess(stageId, fallbackReference.sourceProcessId);
+          const sourceStage = fallbackReference.sourceStageId ? findStage(fallbackReference.sourceStageId) : findStageByProcessId(fallbackReference.sourceProcessId);
           const sourceProduct =
             sourceProcess?.products?.find(
               (product) => product.id === fallbackReference.sourceProductId
@@ -743,6 +797,7 @@ createApp({
 
           displayInputs.unshift({
             ...fallbackReference,
+            sourceStageName: sourceStage?.name || "",
             sourceProcessName: sourceProcess?.name || "",
             sourceProductName: sourceProduct?.name || fallbackReference.name,
           });
@@ -756,14 +811,30 @@ createApp({
       if (!referenceInput?.sourceProcessId) {
         return "";
       }
-      return findProcess(editor.stageId, referenceInput.sourceProcessId)?.name || "";
+      return findProcess(
+        referenceInput.sourceStageId || editor.stageId,
+        referenceInput.sourceProcessId
+      )?.name || "";
+    }
+
+    function getReferenceSourceStageName(referenceInput) {
+      if (!referenceInput?.sourceProcessId) {
+        return "";
+      }
+      return (
+        findStage(referenceInput.sourceStageId) ||
+        findStageByProcessId(referenceInput.sourceProcessId)
+      )?.name || "";
     }
 
     function getReferenceSourceProductName(referenceInput) {
       if (!referenceInput?.sourceProcessId || !referenceInput?.sourceProductId) {
         return "";
       }
-      const process = findProcess(editor.stageId, referenceInput.sourceProcessId);
+      const process = findProcess(
+        referenceInput.sourceStageId || editor.stageId,
+        referenceInput.sourceProcessId
+      );
       return (
         process?.products?.find((product) => product.id === referenceInput.sourceProductId)?.name || ""
       );
@@ -790,11 +861,12 @@ createApp({
           ratio: 100,
           quantity: 0,
           unit: model.product.unit,
-          isMain: true,
+          kind: "main",
         },
       ];
       editor.form.referenceInput = {
         enabled: false,
+        sourceStageId: "",
         sourceProcessId: "",
         sourceProductId: "",
       };
@@ -865,13 +937,14 @@ createApp({
             ratio: 100,
             quantity: Number(target.quantity || 0),
             unit: target.unit || model.product.unit,
-            isMain: true,
+            kind: "main",
           },
         ]
       );
       editor.form.referenceInput = clone(
         target.referenceInput || {
           enabled: false,
+          sourceStageId: "",
           sourceProcessId: "",
           sourceProductId: "",
         }
@@ -886,25 +959,18 @@ createApp({
       editor.currentTab = tab;
     }
 
-    function addProcessProduct(isMain = false) {
+    function addProcessProduct(kind = "main") {
       if (!Array.isArray(editor.form.products)) {
         editor.form.products = [];
-      }
-
-      if (isMain) {
-        editor.form.products.forEach((product) => {
-          product.isMain = false;
-          product.ratio = Number(product.ratio || 0);
-        });
       }
 
       editor.form.products.push({
         id: createId("product"),
         name: "",
-        ratio: isMain ? 100 : 0,
+        ratio: kind === "main" ? 100 : 0,
         quantity: 0,
         unit: model.product.unit,
-        isMain,
+        kind,
       });
     }
 
@@ -919,33 +985,43 @@ createApp({
       }
 
       editor.form.products.splice(index, 1);
-
-      if (!editor.form.products.some((product) => product.isMain) && editor.form.products[0]) {
-        editor.form.products[0].isMain = true;
-        if (!Number(editor.form.products[0].ratio)) {
-          editor.form.products[0].ratio = 100;
-        }
-      }
     }
 
-    function setMainProduct(productId) {
-      editor.form.products.forEach((product) => {
-        product.isMain = product.id === productId;
-        if (product.isMain && !Number(product.ratio)) {
-          product.ratio = 100;
-        }
-      });
+    function setProductKind(productId, kind) {
+      const target = editor.form.products.find((product) => product.id === productId);
+      if (!target) {
+        return;
+      }
+      target.kind = kind;
+      if (kind === "main" && !Number(target.ratio)) {
+        target.ratio = 100;
+      }
     }
 
     function setReferenceInputEnabled(enabled) {
       editor.form.referenceInput.enabled = enabled;
       if (!enabled) {
+        editor.form.referenceInput.sourceStageId = "";
         editor.form.referenceInput.sourceProcessId = "";
         editor.form.referenceInput.sourceProductId = "";
       }
     }
 
+    function handleReferenceStageChange() {
+      const stage = findStage(editor.form.referenceInput.sourceStageId);
+      const firstProcess = stage?.processes?.[0];
+      editor.form.referenceInput.sourceProcessId = firstProcess ? firstProcess.id : "";
+      const firstProduct = firstProcess?.products?.[0];
+      editor.form.referenceInput.sourceProductId = firstProduct ? firstProduct.id : "";
+    }
+
     function handleReferenceProcessChange() {
+      const selectedProcess = availableReferenceProcesses.value.find(
+        (process) => process.id === editor.form.referenceInput.sourceProcessId
+      );
+      if (selectedProcess) {
+        editor.form.referenceInput.sourceStageId = selectedProcess.stageId;
+      }
       const firstProduct = availableReferenceProducts.value[0];
       editor.form.referenceInput.sourceProductId = firstProduct ? firstProduct.id : "";
     }
@@ -956,6 +1032,8 @@ createApp({
       }
 
       const sourceProcess = findProcess(stageId, referenceInput.sourceProcessId);
+      const sourceStage =
+        findStage(referenceInput.sourceStageId) || findStageByProcessId(referenceInput.sourceProcessId);
       const sourceProduct =
         sourceProcess?.products?.find((product) => product.id === referenceInput.sourceProductId) ||
         sourceProcess?.products?.[0];
@@ -977,6 +1055,7 @@ createApp({
           routes: [],
         },
         isReference: true,
+        sourceStageId: sourceStage?.id || "",
         sourceProcessId: sourceProcess.id,
         sourceProductId: sourceProduct.id,
         certificateName: "",
@@ -1052,10 +1131,10 @@ createApp({
           ratio: Number(product.ratio || 0),
           quantity: Number(product.quantity || 0),
           unit: (product.unit || model.product.unit).trim(),
-          isMain: product.isMain || index === 0,
+          kind: product.kind || (index === 0 ? "main" : "byproduct"),
         }));
         const mainProduct =
-          normalizedProducts.find((product) => product.isMain) || normalizedProducts[0] || null;
+          normalizedProducts.find((product) => product.kind === "main") || normalizedProducts[0] || null;
 
         if (!mainProduct || !mainProduct.name || !mainProduct.unit) {
           window.alert("请完善主产出物的名称和单位。");
@@ -1196,6 +1275,7 @@ createApp({
       getProcessIndex,
       getPrimaryProduct,
       getDisplayInputs,
+      getReferenceSourceStageName,
       getReferenceSourceProcessName,
       getReferenceSourceProductName,
       openCreateEditor,
@@ -1204,8 +1284,9 @@ createApp({
       setEditorTab,
       addProcessProduct,
       removeProcessProduct,
-      setMainProduct,
+      setProductKind,
       setReferenceInputEnabled,
+      handleReferenceStageChange,
       handleReferenceProcessChange,
       setTransportRequired,
       applyMockFactor,

@@ -111,7 +111,7 @@
                         <div class="lcm-item-card__foot">
                           {{
                             item.isReference
-                              ? `引用自：${item.sourceProcessName} > ${item.sourceProductName}`
+                              ? `引用自：${item.sourceStageName ? `${item.sourceStageName} / ` : ''}${item.sourceProcessName} > ${item.sourceProductName}`
                               : `录用工序：${process.name}`
                           }}
                         </div>
@@ -507,15 +507,7 @@
                     :key="product.id"
                   >
                     <div class="lcm-process-product__top">
-                      <label class="lcm-checkline">
-                        <input
-                          type="radio"
-                          name="mainProduct"
-                          :checked="product.isMain"
-                          @change="setMainProduct(product.id)"
-                        />
-                        <span>{{ product.isMain ? '主产出物' : '副产出物' }}</span>
-                      </label>
+                      <span class="lcm-process-product__index">产物{{ productIndex + 1 }}</span>
                       <button
                         v-if="editor.form.products.length > 1"
                         class="lcm-table-icon-btn"
@@ -527,6 +519,13 @@
                     </div>
 
                     <div class="lcm-field-grid lcm-field-grid--process-product">
+                      <label class="lcm-field">
+                        <span class="lcm-field__label">产物类型</span>
+                        <select class="lcm-input" :value="product.kind" @change="setProductKind(product.id, $event.target.value)">
+                          <option value="main">主产出物</option>
+                          <option value="byproduct">副产出物</option>
+                        </select>
+                      </label>
                       <label class="lcm-field">
                         <span class="lcm-field__label is-required">名称</span>
                         <input class="lcm-input" v-model.trim="product.name" placeholder="产物名称" required />
@@ -550,10 +549,10 @@
                   </div>
 
                   <div class="lcm-process-links">
-                    <button class="lcm-process-link" type="button" @click="addProcessProduct(false)">
+                    <button class="lcm-process-link" type="button" @click="addProcessProduct('main')">
                       + 添加产出物
                     </button>
-                    <button class="lcm-process-link" type="button" @click="addProcessProduct(false)">
+                    <button class="lcm-process-link" type="button" @click="addProcessProduct('byproduct')">
                       + 添加副产出物
                     </button>
                   </div>
@@ -588,6 +587,23 @@
                           </select>
                         </label>
                         <label class="lcm-field">
+                          <span class="lcm-field__label">环节</span>
+                          <select
+                            class="lcm-input"
+                            v-model="editor.form.referenceInput.sourceStageId"
+                            @change="handleReferenceStageChange"
+                          >
+                            <option value="">请选择环节</option>
+                            <option
+                              v-for="stage in model.stages"
+                              :key="stage.id"
+                              :value="stage.id"
+                            >
+                              {{ stage.name }}
+                            </option>
+                          </select>
+                        </label>
+                        <label class="lcm-field">
                           <span class="lcm-field__label">工序</span>
                           <select
                             class="lcm-input"
@@ -600,7 +616,7 @@
                               :key="process.id"
                               :value="process.id"
                             >
-                              {{ process.name }}
+                              {{ process.stageName }} / {{ process.name }}
                             </option>
                           </select>
                         </label>
@@ -624,6 +640,7 @@
                         class="lcm-reference-preview"
                       >
                         <span class="lcm-reference-pill">其他工序产物</span>
+                        <span class="lcm-reference-pill">{{ getReferenceSourceStageName(editor.form.referenceInput) || '未选择环节' }}</span>
                         <span class="lcm-reference-pill">{{ getReferenceSourceProcessName(editor.form.referenceInput) || '未选择工序' }}</span>
                         <span class="lcm-reference-pill">{{ getReferenceSourceProductName(editor.form.referenceInput) || '未选择产物' }}</span>
                       </div>
