@@ -1,6 +1,6 @@
 const { createApp, reactive, computed, watch } = Vue;
 
-const STORAGE_KEY = "lifecycle-model-demo";
+const STORAGE_KEY = "lifecycle-model-demo-v6";
 
 const createId = (prefix) => `${prefix}_${Math.random().toString(36).slice(2, 10)}`;
 const clone = (value) => JSON.parse(JSON.stringify(value));
@@ -498,6 +498,17 @@ const DEFAULT_MODEL = {
   ],
 };
 
+const productionStage = DEFAULT_MODEL.stages.find((stage) => stage.id === "production");
+if (productionStage && productionStage.processes.length >= 2) {
+  const sourceProcess = productionStage.processes[0];
+  const targetProcess = productionStage.processes[1];
+  targetProcess.referenceInput = {
+    enabled: true,
+    sourceProcessId: sourceProcess.id,
+    sourceProductId: sourceProcess.products[0]?.id || "",
+  };
+}
+
 const createEditorState = () => ({
   visible: false,
   mode: "create",
@@ -620,7 +631,7 @@ createApp({
         return [];
       }
 
-      return currentStage.processes.filter((process) => process.id !== editor.targetId);
+      return currentStage.processes.filter((process) => process.id !== editor.processId);
     });
 
     const availableReferenceProducts = computed(() => {
@@ -682,6 +693,56 @@ createApp({
 
     function getProcessIndex(stage, processId) {
       return stage.processes.findIndex((process) => process.id === processId);
+    }
+
+    function getPrimaryProduct(process) {
+      return process.products?.find((product) => product.isMain) || process.products?.[0] || null;
+    }
+
+    function getDisplayInputs(stageId, process) {
+      const displayInputs = [...(process.inputs || [])];
+
+      if (process.referenceInput?.enabled) {
+        const sourceProcess = findProcess(stageId, process.referenceInput.sourceProcessId);
+        const sourceProduct =
+          sourceProcess?.products?.find(
+            (product) => product.id === process.referenceInput.sourceProductId
+          ) || sourceProcess?.products?.[0];
+
+        if (sourceProcess && sourceProduct) {
+          displayInputs.unshift({
+            id: `ref_${process.id}_${sourceProduct.id}`,
+            category: "其他工序产物",
+            name: sourceProduct.name || "未命名产物",
+            quantity: Number(sourceProduct.quantity || 0),
+            unit: sourceProduct.unit || model.product.unit,
+            source: sourceProcess.name,
+            note: "",
+            isReference: true,
+            sourceProcessName: sourceProcess.name,
+            sourceProductName: sourceProduct.name || "未命名产物",
+          });
+        }
+      }
+
+      return displayInputs;
+    }
+
+    function getReferenceSourceProcessName(referenceInput) {
+      if (!referenceInput?.sourceProcessId) {
+        return "";
+      }
+      return findProcess(editor.stageId, referenceInput.sourceProcessId)?.name || "";
+    }
+
+    function getReferenceSourceProductName(referenceInput) {
+      if (!referenceInput?.sourceProcessId || !referenceInput?.sourceProductId) {
+        return "";
+      }
+      const process = findProcess(editor.stageId, referenceInput.sourceProcessId);
+      return (
+        process?.products?.find((product) => product.id === referenceInput.sourceProductId)?.name || ""
+      );
     }
 
     function resetEditorForm(type) {
@@ -1065,6 +1126,10 @@ createApp({
       formatNumber,
       getStageProcessLabel,
       getProcessIndex,
+      getPrimaryProduct,
+      getDisplayInputs,
+      getReferenceSourceProcessName,
+      getReferenceSourceProductName,
       openCreateEditor,
       openEditEditor,
       closeEditor,

@@ -423,11 +423,26 @@
 }
 
 .lcm-item-card__foot,
-.lcm-process-card__output {
+.lcm-process-card__output,
+.lcm-process-card__foot {
   margin-top: 4px;
   color: #9ca3af;
   font-size: 11px;
   line-height: 1.4;
+}
+
+.lcm-item-card.is-reference {
+  border-style: dashed;
+  border-color: #10b981;
+  background: #f0fdf4;
+}
+
+.lcm-item-card.is-reference .lcm-item-card__tag {
+  color: #047857;
+}
+
+.lcm-item-card.is-reference .lcm-item-card__tag::before {
+  background: #10b981;
 }
 
 .lcm-process-card {
@@ -931,6 +946,25 @@
 
 .lcm-field-grid--reference {
   grid-template-columns: 1fr 1fr 1fr;
+}
+
+.lcm-reference-preview {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.lcm-reference-pill {
+  display: inline-flex;
+  align-items: center;
+  height: 28px;
+  padding: 0 10px;
+  border-radius: 4px;
+  background: #f3f4f6;
+  color: #374151;
+  font-size: 12px;
+  font-weight: 600;
 }
 
 @media (max-width: 1200px) {

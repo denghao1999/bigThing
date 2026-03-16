@@ -83,10 +83,10 @@
                     <div class="lcm-lane__toolbar">
                       <div>
                         <div class="lcm-lane__title">输入</div>
-                        <div class="lcm-lane__meta">{{ process.inputs.length }} 项</div>
+                        <div class="lcm-lane__meta">{{ getDisplayInputs(stage.id, process).length }} 项</div>
                       </div>
                       <button
-                        v-if="process.inputs.length"
+                        v-if="getDisplayInputs(stage.id, process).length"
                         class="lcm-mini-btn"
                         type="button"
                         @click="openCreateEditor(stage.id, 'input', process.id)"
@@ -95,19 +95,26 @@
                       </button>
                     </div>
 
-                    <div class="lcm-lane__list" v-if="process.inputs.length">
+                    <div class="lcm-lane__list" v-if="getDisplayInputs(stage.id, process).length">
                       <article
-                        v-for="item in process.inputs"
+                        v-for="item in getDisplayInputs(stage.id, process)"
                         :key="item.id"
                         class="lcm-item-card lcm-item-card--input"
-                        @click="openEditEditor(stage.id, 'input', item.id, process.id)"
+                        :class="{ 'is-reference': item.isReference }"
+                        @click="item.isReference ? openEditEditor(stage.id, 'process', process.id) : openEditEditor(stage.id, 'input', item.id, process.id)"
                       >
                         <div class="lcm-item-card__top">
                           <span class="lcm-item-card__tag">{{ item.category }}</span>
                           <span class="lcm-item-card__value">{{ formatNumber(item.quantity) }} {{ item.unit }}</span>
                         </div>
                         <div class="lcm-item-card__name">{{ item.name }}</div>
-                        <div class="lcm-item-card__foot">录用工序：{{ process.name }}</div>
+                        <div class="lcm-item-card__foot">
+                          {{
+                            item.isReference
+                              ? `引用自：${item.sourceProcessName} > ${item.sourceProductName}`
+                              : `录用工序：${process.name}`
+                          }}
+                        </div>
                       </article>
                     </div>
                     <button
@@ -137,11 +144,14 @@
                         <div class="lcm-process-card__main">
                           <div class="lcm-process-card__name">{{ process.name }}</div>
                           <div class="lcm-process-card__output">
-                            产出物：{{ process.outputName }}
+                            产出物：{{ getPrimaryProduct(process)?.name || process.outputName }}
+                          </div>
+                          <div class="lcm-process-card__foot">
+                            {{ process.products?.length || 0 }} item(s)
                           </div>
                         </div>
                         <div class="lcm-process-card__value">
-                          {{ formatNumber(process.quantity) }} {{ process.unit }}
+                          {{ formatNumber(getPrimaryProduct(process)?.quantity ?? process.quantity) }} {{ getPrimaryProduct(process)?.unit || process.unit }}
                         </div>
                       </article>
                     </div>
@@ -607,6 +617,15 @@
                             </option>
                           </select>
                         </label>
+                      </div>
+
+                      <div
+                        v-if="editor.form.referenceInput.sourceProcessId && editor.form.referenceInput.sourceProductId"
+                        class="lcm-reference-preview"
+                      >
+                        <span class="lcm-reference-pill">其他工序产物</span>
+                        <span class="lcm-reference-pill">{{ getReferenceSourceProcessName(editor.form.referenceInput) || '未选择工序' }}</span>
+                        <span class="lcm-reference-pill">{{ getReferenceSourceProductName(editor.form.referenceInput) || '未选择产物' }}</span>
                       </div>
                     </div>
                   </div>
