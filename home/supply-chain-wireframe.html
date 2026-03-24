@@ -1,0 +1,669 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>供应链管理原型图</title>
+    <link rel="stylesheet" href="../assets/lib/bootstrap.css" />
+    <style>
+      * { box-sizing: border-box; }
+      body {
+        margin: 0;
+        font-family: Arial, "Microsoft YaHei", sans-serif;
+        background: #f3f5f7;
+        color: #1f2937;
+      }
+      .wireframe {
+        display: grid;
+        grid-template-columns: 260px 1fr;
+        min-height: 100vh;
+      }
+      .sidebar {
+        background: #fff;
+        border-right: 1px solid #e5e7eb;
+        padding: 18px 16px;
+      }
+      .sidebar h1 {
+        margin: 0;
+        font-size: 22px;
+        font-weight: 700;
+      }
+      .sidebar p {
+        margin: 8px 0 18px;
+        color: #6b7280;
+        font-size: 12px;
+        line-height: 1.6;
+      }
+      .tree-group { margin-bottom: 16px; }
+      .tree-group__title {
+        margin-bottom: 8px;
+        color: #94a3b8;
+        font-size: 11px;
+        font-weight: 700;
+        letter-spacing: .08em;
+        text-transform: uppercase;
+      }
+      .tree-item {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        width: 100%;
+        padding: 10px 12px;
+        border: 0;
+        background: transparent;
+        border-radius: 8px;
+        text-align: left;
+        cursor: pointer;
+        color: #334155;
+        font-size: 14px;
+      }
+      .tree-item:hover { background: #f8fafc; }
+      .tree-item.is-active {
+        background: #e8f1ff;
+        color: #1d4ed8;
+        font-weight: 700;
+      }
+      .tree-item__tag {
+        padding: 2px 8px;
+        border-radius: 999px;
+        background: #f1f5f9;
+        color: #64748b;
+        font-size: 11px;
+      }
+      .main {
+        padding: 18px 20px;
+      }
+      .topbar {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 16px;
+        margin-bottom: 16px;
+      }
+      .topbar__title {
+        margin: 0;
+        font-size: 24px;
+        font-weight: 700;
+      }
+      .topbar__desc {
+        margin-top: 6px;
+        color: #6b7280;
+        font-size: 13px;
+      }
+      .topbar__chips { display: flex; gap: 8px; flex-wrap: wrap; }
+      .chip {
+        display: inline-flex;
+        align-items: center;
+        height: 30px;
+        padding: 0 10px;
+        border-radius: 999px;
+        background: #fff;
+        border: 1px solid #e5e7eb;
+        color: #475569;
+        font-size: 12px;
+        font-weight: 600;
+      }
+      .canvas {
+        background: #fff;
+        border: 1px solid #dbe1e8;
+        border-radius: 12px;
+        overflow: hidden;
+      }
+      .canvas__header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 14px 18px;
+        border-bottom: 1px solid #e5e7eb;
+        background: #fafbfc;
+      }
+      .canvas__header h2 {
+        margin: 0;
+        font-size: 18px;
+        font-weight: 700;
+      }
+      .canvas__header p {
+        margin: 4px 0 0;
+        color: #94a3b8;
+        font-size: 12px;
+      }
+      .header-actions { display: flex; gap: 8px; }
+      .btn {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        min-width: 92px;
+        height: 34px;
+        padding: 0 12px;
+        border-radius: 8px;
+        border: 1px solid #d1d5db;
+        background: #fff;
+        color: #374151;
+        font-size: 12px;
+        font-weight: 600;
+      }
+      .btn--primary {
+        border-color: #2563eb;
+        background: #2563eb;
+        color: #fff;
+      }
+      .btn--ghost { background: #f8fafc; }
+      .page { display: none; padding: 18px; }
+      .page.is-active { display: block; }
+      .filter-bar {
+        display: grid;
+        grid-template-columns: repeat(6, minmax(0, 1fr));
+        gap: 12px;
+        margin-bottom: 16px;
+      }
+      .field {
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+      }
+      .field label {
+        color: #64748b;
+        font-size: 12px;
+        font-weight: 600;
+      }
+      .field .control {
+        height: 36px;
+        padding: 0 10px;
+        border: 1px solid #d1d5db;
+        border-radius: 8px;
+        background: #fff;
+        color: #111827;
+        font-size: 13px;
+      }
+      .field .control.textarea {
+        height: 88px;
+        padding: 10px;
+      }
+      .metric-grid {
+        display: grid;
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+        gap: 14px;
+        margin-bottom: 16px;
+      }
+      .metric {
+        padding: 16px;
+        border: 1px dashed #dbe1e8;
+        border-radius: 10px;
+        background: #fbfcfd;
+      }
+      .metric__label {
+        color: #64748b;
+        font-size: 12px;
+      }
+      .metric__value {
+        margin-top: 8px;
+        font-size: 26px;
+        font-weight: 700;
+      }
+      .panel-grid {
+        display: grid;
+        grid-template-columns: 1.3fr 1fr;
+        gap: 16px;
+      }
+      .panel {
+        border: 1px solid #e5e7eb;
+        border-radius: 10px;
+        background: #fff;
+      }
+      .panel__head {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 12px 14px;
+        border-bottom: 1px solid #e5e7eb;
+        background: #fafbfc;
+      }
+      .panel__head h3 {
+        margin: 0;
+        font-size: 15px;
+        font-weight: 700;
+      }
+      .panel__body { padding: 14px; }
+      .table {
+        width: 100%;
+        border-collapse: collapse;
+        table-layout: fixed;
+      }
+      .table th,
+      .table td {
+        padding: 10px 8px;
+        border-bottom: 1px solid #eef2f7;
+        text-align: left;
+        font-size: 12px;
+        color: #334155;
+        vertical-align: top;
+      }
+      .table th {
+        color: #64748b;
+        background: #fafbfc;
+        font-weight: 700;
+      }
+      .table tr:last-child td { border-bottom: 0; }
+      .table .link { color: #2563eb; font-weight: 600; }
+      .tabs {
+        display: flex;
+        gap: 8px;
+        margin-bottom: 14px;
+      }
+      .tab {
+        padding: 8px 12px;
+        border-radius: 8px;
+        background: #f1f5f9;
+        color: #475569;
+        font-size: 12px;
+        font-weight: 700;
+      }
+      .tab.is-active {
+        background: #e8f1ff;
+        color: #1d4ed8;
+      }
+      .cards-2 {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 12px;
+      }
+      .mini-card {
+        border: 1px solid #e5e7eb;
+        border-radius: 10px;
+        padding: 14px;
+        background: #fff;
+      }
+      .mini-card h4 {
+        margin: 0 0 8px;
+        font-size: 14px;
+        font-weight: 700;
+      }
+      .mini-card p {
+        margin: 0;
+        color: #64748b;
+        font-size: 12px;
+        line-height: 1.6;
+      }
+      .chart-box {
+        height: 220px;
+        border: 1px dashed #cbd5e1;
+        border-radius: 10px;
+        background:
+          linear-gradient(180deg, rgba(37,99,235,0.08), rgba(37,99,235,0)) padding-box,
+          repeating-linear-gradient(90deg, transparent, transparent 39px, #edf2f7 39px, #edf2f7 40px),
+          repeating-linear-gradient(180deg, transparent, transparent 39px, #edf2f7 39px, #edf2f7 40px);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: #64748b;
+        font-size: 13px;
+        font-weight: 700;
+      }
+      .flow {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 12px;
+      }
+      .flow-step {
+        border: 1px solid #e5e7eb;
+        border-radius: 10px;
+        padding: 14px;
+        background: #fff;
+      }
+      .flow-step__index {
+        display: inline-grid;
+        place-items: center;
+        width: 24px;
+        height: 24px;
+        border-radius: 50%;
+        background: #dbeafe;
+        color: #1d4ed8;
+        font-size: 12px;
+        font-weight: 700;
+      }
+      .flow-step h4 {
+        margin: 10px 0 6px;
+        font-size: 14px;
+        font-weight: 700;
+      }
+      .flow-step p {
+        margin: 0;
+        color: #64748b;
+        font-size: 12px;
+        line-height: 1.6;
+      }
+      .proto-note {
+        margin-top: 16px;
+        padding: 12px 14px;
+        border-radius: 8px;
+        background: #fffbeb;
+        border: 1px solid #fde68a;
+        color: #92400e;
+        font-size: 12px;
+        line-height: 1.7;
+      }
+      @media (max-width: 1200px) {
+        .wireframe { grid-template-columns: 1fr; }
+        .filter-bar, .metric-grid, .panel-grid, .cards-2, .flow { grid-template-columns: 1fr; }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="wireframe">
+      <aside class="sidebar">
+        <h1>供应链管理</h1>
+        <p>这是新增模块的低保真原型集合页。左侧点击模块，右侧切换对应页面草图，适合做产品讨论与原型方向确认。</p>
+
+        <div class="tree-group">
+          <div class="tree-group__title">P0 优先级</div>
+          <button class="tree-item is-active" data-page="supplier-list"><span>供应商管理</span><span class="tree-item__tag">新增</span></button>
+          <button class="tree-item" data-page="supplier-detail"><span>供应商详情</span><span class="tree-item__tag">详情</span></button>
+        </div>
+
+        <div class="tree-group">
+          <div class="tree-group__title">P1 优先级</div>
+          <button class="tree-item" data-page="transport-list"><span>运输碳足迹</span><span class="tree-item__tag">新增</span></button>
+          <button class="tree-item" data-page="supplier-analysis"><span>供应商分析</span><span class="tree-item__tag">新增</span></button>
+          <button class="tree-item" data-page="collection-board"><span>收资看板</span><span class="tree-item__tag">新增</span></button>
+          <button class="tree-item" data-page="shared-pool"><span>共享数据</span><span class="tree-item__tag">新增</span></button>
+        </div>
+
+        <div class="tree-group">
+          <div class="tree-group__title">P2 可选</div>
+          <button class="tree-item" data-page="replace-analysis"><span>物料替代分析</span><span class="tree-item__tag">可选</span></button>
+        </div>
+      </aside>
+
+      <main class="main">
+        <div class="topbar">
+          <div>
+            <h2 class="topbar__title" id="pageTitle">供应商管理 - 列表页</h2>
+            <div class="topbar__desc" id="pageDesc">用于统一管理供应商主档、联系人、状态以及与物料的关系。</div>
+          </div>
+          <div class="topbar__chips">
+            <span class="chip">低保真线框</span>
+            <span class="chip">供应链管理菜单</span>
+            <span class="chip">可直接转 Axure</span>
+          </div>
+        </div>
+
+        <section class="canvas">
+          <div class="canvas__header">
+            <div>
+              <h2 id="canvasTitle">供应商列表</h2>
+              <p id="canvasSub">页面目标：统一管理供应商主档与协同对象</p>
+            </div>
+            <div class="header-actions">
+              <button class="btn btn--ghost">导出</button>
+              <button class="btn">导入</button>
+              <button class="btn btn--primary">新增</button>
+            </div>
+          </div>
+
+          <div class="page is-active" id="page-supplier-list">
+            <div class="filter-bar">
+              <div class="field"><label>供应商名称</label><div class="control"></div></div>
+              <div class="field"><label>供应商编码</label><div class="control"></div></div>
+              <div class="field"><label>分类</label><div class="control"></div></div>
+              <div class="field"><label>地区</label><div class="control"></div></div>
+              <div class="field"><label>状态</label><div class="control"></div></div>
+              <div class="field"><label>&nbsp;</label><div class="control" style="background:#2563eb;color:#fff;text-align:center;line-height:36px;">查询</div></div>
+            </div>
+            <table class="table">
+              <thead>
+                <tr>
+                  <th>供应商名称</th><th>编码</th><th>分类</th><th>地区</th><th>联系人</th><th>供应物料数</th><th>收资完成率</th><th>操作</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr><td>宁波A公司</td><td>SUP-001</td><td>核心供应商</td><td>华东</td><td>张三</td><td>12</td><td>86%</td><td class="link">详情 / 编辑 / 发起收资</td></tr>
+                <tr><td>苏州B公司</td><td>SUP-002</td><td>普通供应商</td><td>华东</td><td>李四</td><td>5</td><td>54%</td><td class="link">详情 / 编辑 / 共享</td></tr>
+                <tr><td>深圳C公司</td><td>SUP-003</td><td>核心供应商</td><td>华南</td><td>王五</td><td>21</td><td>91%</td><td class="link">详情 / 编辑 / 发起收资</td></tr>
+              </tbody>
+            </table>
+            <div class="proto-note">原型说明：列表页重点体现筛选、台账字段和常见协同入口。后续可继续加“标签筛选、批量操作、启停状态切换”。</div>
+          </div>
+
+          <div class="page" id="page-supplier-detail">
+            <div class="tabs">
+              <div class="tab is-active">基础信息</div>
+              <div class="tab">供应物料</div>
+              <div class="tab">收资记录</div>
+              <div class="tab">碳数据概览</div>
+              <div class="tab">共享记录</div>
+            </div>
+            <div class="cards-2">
+              <div class="mini-card">
+                <h4>供应商画像</h4>
+                <p>名称：宁波A公司<br/>分类：核心供应商<br/>地区：华东<br/>联系人：张三 / 138xxxxxx</p>
+              </div>
+              <div class="mini-card">
+                <h4>协同概览</h4>
+                <p>供应物料：12 个<br/>收资任务：18 个<br/>已共享数据：6 条<br/>最近更新时间：2026-03-10</p>
+              </div>
+            </div>
+            <div class="panel-grid" style="margin-top:16px;">
+              <section class="panel">
+                <div class="panel__head"><h3>供应物料</h3><span class="link">查看全部</span></div>
+                <div class="panel__body">
+                  <table class="table">
+                    <thead><tr><th>物料名称</th><th>编码</th><th>碳足迹</th><th>状态</th><th>操作</th></tr></thead>
+                    <tbody>
+                      <tr><td>PET切片</td><td>M-001</td><td>2.31</td><td>已核算</td><td class="link">查看</td></tr>
+                      <tr><td>包装膜</td><td>M-014</td><td>1.12</td><td>待更新</td><td class="link">查看</td></tr>
+                    </tbody>
+                  </table>
+                </div>
+              </section>
+              <section class="panel">
+                <div class="panel__head"><h3>收资记录</h3><span class="link">发起任务</span></div>
+                <div class="panel__body">
+                  <table class="table">
+                    <thead><tr><th>任务名称</th><th>状态</th><th>截止日期</th></tr></thead>
+                    <tbody>
+                      <tr><td>PET因子收资</td><td>进行中</td><td>2026-03-25</td></tr>
+                      <tr><td>包装物料补录</td><td>已完成</td><td>2026-03-18</td></tr>
+                    </tbody>
+                  </table>
+                </div>
+              </section>
+            </div>
+          </div>
+
+          <div class="page" id="page-transport-list">
+            <div class="filter-bar">
+              <div class="field"><label>路线名称</label><div class="control"></div></div>
+              <div class="field"><label>起点</label><div class="control"></div></div>
+              <div class="field"><label>终点</label><div class="control"></div></div>
+              <div class="field"><label>运输方式</label><div class="control"></div></div>
+              <div class="field"><label>关联物料</label><div class="control"></div></div>
+              <div class="field"><label>&nbsp;</label><div class="control" style="background:#2563eb;color:#fff;text-align:center;line-height:36px;">查询</div></div>
+            </div>
+            <table class="table">
+              <thead>
+                <tr><th>路线名称</th><th>起点</th><th>终点</th><th>方式</th><th>距离(km)</th><th>重量(kg)</th><th>碳排</th><th>操作</th></tr>
+              </thead>
+              <tbody>
+                <tr><td>PET运输1</td><td>苏州</td><td>无锡</td><td>公路</td><td>186</td><td>1020</td><td>0.17</td><td class="link">详情 / 编辑</td></tr>
+                <tr><td>成品发运</td><td>无锡</td><td>南京</td><td>公路</td><td>580</td><td>10855</td><td>1.68</td><td class="link">详情 / 编辑</td></tr>
+              </tbody>
+            </table>
+            <div class="panel-grid" style="margin-top:16px;">
+              <section class="panel"><div class="panel__head"><h3>路线详情草图</h3></div><div class="panel__body"><div class="flow"><div class="flow-step"><span class="flow-step__index">1</span><h4>基础信息</h4><p>路线名称、起点终点、运输方式、距离、重量。</p></div><div class="flow-step"><span class="flow-step__index">2</span><h4>因子配置</h4><p>选择运输因子、地区、说明。</p></div><div class="flow-step"><span class="flow-step__index">3</span><h4>计算结果</h4><p>得到运输排放结果并支持导出。</p></div></div></div></section>
+              <section class="panel"><div class="panel__head"><h3>运输计算区</h3></div><div class="panel__body"><div class="chart-box">低保真：运输路线地图 / 分段流向图</div></div></section>
+            </div>
+          </div>
+
+          <div class="page" id="page-supplier-analysis">
+            <div class="metric-grid">
+              <div class="metric"><div class="metric__label">供应商总数</div><div class="metric__value">126</div></div>
+              <div class="metric"><div class="metric__label">已收资供应商</div><div class="metric__value">89</div></div>
+              <div class="metric"><div class="metric__label">高碳供应商</div><div class="metric__value">17</div></div>
+              <div class="metric"><div class="metric__label">平均完成率</div><div class="metric__value">78%</div></div>
+            </div>
+            <div class="panel-grid">
+              <section class="panel"><div class="panel__head"><h3>供应商碳排 TOP10</h3></div><div class="panel__body"><div class="chart-box">低保真柱状图区域</div></div></section>
+              <section class="panel"><div class="panel__head"><h3>数据质量分布</h3></div><div class="panel__body"><div class="chart-box">低保真饼图区域</div></div></section>
+            </div>
+            <section class="panel" style="margin-top:16px;">
+              <div class="panel__head"><h3>供应商排行</h3><span class="link">查看详情分析</span></div>
+              <div class="panel__body">
+                <table class="table">
+                  <thead><tr><th>排名</th><th>供应商</th><th>总碳排</th><th>碳强度</th><th>收资完成率</th><th>数据质量</th></tr></thead>
+                  <tbody>
+                    <tr><td>1</td><td>宁波A公司</td><td>125.4</td><td>2.31</td><td>86%</td><td>A</td></tr>
+                    <tr><td>2</td><td>深圳B公司</td><td>98.7</td><td>1.96</td><td>92%</td><td>A</td></tr>
+                    <tr><td>3</td><td>苏州C公司</td><td>87.1</td><td>1.74</td><td>64%</td><td>B</td></tr>
+                  </tbody>
+                </table>
+              </div>
+            </section>
+          </div>
+
+          <div class="page" id="page-collection-board">
+            <div class="metric-grid">
+              <div class="metric"><div class="metric__label">总任务数</div><div class="metric__value">218</div></div>
+              <div class="metric"><div class="metric__label">已完成</div><div class="metric__value">156</div></div>
+              <div class="metric"><div class="metric__label">进行中</div><div class="metric__value">41</div></div>
+              <div class="metric"><div class="metric__label">逾期/异常</div><div class="metric__value">21</div></div>
+            </div>
+            <div class="panel-grid">
+              <section class="panel"><div class="panel__head"><h3>任务状态分布</h3></div><div class="panel__body"><div class="chart-box">低保真状态分布图</div></div></section>
+              <section class="panel"><div class="panel__head"><h3>供应商完成率</h3></div><div class="panel__body"><div class="chart-box">低保真完成率图</div></div></section>
+            </div>
+            <section class="panel" style="margin-top:16px;">
+              <div class="panel__head"><h3>异常任务 TOP 列表</h3><span class="link">查看全部异常</span></div>
+              <div class="panel__body">
+                <table class="table">
+                  <thead><tr><th>任务名称</th><th>供应商</th><th>异常类型</th><th>截止日期</th><th>操作</th></tr></thead>
+                  <tbody>
+                    <tr><td>PET因子收资</td><td>宁波A公司</td><td>逾期未提交</td><td>2026-03-25</td><td class="link">查看详情</td></tr>
+                    <tr><td>包装膜补录</td><td>苏州B公司</td><td>退回待修改</td><td>2026-03-18</td><td class="link">查看详情</td></tr>
+                  </tbody>
+                </table>
+              </div>
+            </section>
+          </div>
+
+          <div class="page" id="page-shared-pool">
+            <div class="filter-bar">
+              <div class="field"><label>数据类型</label><div class="control"></div></div>
+              <div class="field"><label>来源供应商</label><div class="control"></div></div>
+              <div class="field"><label>来源物料</label><div class="control"></div></div>
+              <div class="field"><label>共享状态</label><div class="control"></div></div>
+              <div class="field"><label>有效期</label><div class="control"></div></div>
+              <div class="field"><label>&nbsp;</label><div class="control" style="background:#2563eb;color:#fff;text-align:center;line-height:36px;">查询</div></div>
+            </div>
+            <table class="table">
+              <thead><tr><th>数据名称</th><th>类型</th><th>来源对象</th><th>生效时间</th><th>有效期</th><th>引用次数</th><th>操作</th></tr></thead>
+              <tbody>
+                <tr><td>PET因子共享</td><td>因子</td><td>宁波A / PET切片</td><td>2026-03-10</td><td>2026-12-31</td><td>5</td><td class="link">详情 / 引用</td></tr>
+                <tr><td>包装膜碳足迹</td><td>碳足迹</td><td>深圳B / 包装膜</td><td>2026-03-08</td><td>2026-06-30</td><td>2</td><td class="link">详情 / 授权</td></tr>
+              </tbody>
+            </table>
+            <div class="proto-note">原型说明：共享数据页强调“资产沉淀”而不是只看请求流转，适合与共享请求配套使用。</div>
+          </div>
+
+          <div class="page" id="page-replace-analysis">
+            <div class="panel-grid">
+              <section class="panel">
+                <div class="panel__head"><h3>替代方案配置</h3></div>
+                <div class="panel__body">
+                  <div class="filter-bar" style="grid-template-columns:repeat(2,minmax(0,1fr));margin-bottom:0;">
+                    <div class="field"><label>基准物料</label><div class="control"></div></div>
+                    <div class="field"><label>替代物料</label><div class="control"></div></div>
+                    <div class="field"><label>基准供应商</label><div class="control"></div></div>
+                    <div class="field"><label>替代供应商</label><div class="control"></div></div>
+                    <div class="field"><label>数量</label><div class="control"></div></div>
+                    <div class="field"><label>运输方案</label><div class="control"></div></div>
+                  </div>
+                  <div style="margin-top:14px;"><button class="btn btn--primary">开始模拟</button></div>
+                </div>
+              </section>
+              <section class="panel">
+                <div class="panel__head"><h3>对比结果</h3></div>
+                <div class="panel__body">
+                  <div class="cards-2">
+                    <div class="mini-card"><h4>基准方案</h4><p>碳排：12.34<br/>成本：100</p></div>
+                    <div class="mini-card"><h4>替代方案</h4><p>碳排：9.84<br/>成本：103</p></div>
+                  </div>
+                  <div class="proto-note" style="margin-top:12px;">结论：预计降碳 20.2%，成本上升 3%。适合做原料替代、供应商切换、运输方式切换等模拟。</div>
+                </div>
+              </section>
+            </div>
+          </div>
+        </section>
+      </main>
+    </div>
+
+    <script>
+      const pageMeta = {
+        'supplier-list': {
+          title: '供应商管理 - 列表页',
+          desc: '用于统一管理供应商主档、联系人、状态以及与物料的关系。',
+          canvasTitle: '供应商列表',
+          canvasSub: '页面目标：统一管理供应商主档与协同对象'
+        },
+        'supplier-detail': {
+          title: '供应商管理 - 详情页',
+          desc: '查看供应商完整画像，包括物料、收资、碳数据和共享记录。',
+          canvasTitle: '供应商详情',
+          canvasSub: '页面目标：形成供应商360画像'
+        },
+        'transport-list': {
+          title: '运输碳足迹 - 列表/详情',
+          desc: '单独管理运输路线、运输方式、距离和运输排放。',
+          canvasTitle: '运输路线列表',
+          canvasSub: '页面目标：把运输排放从物料碳足迹中拆出来独立管理'
+        },
+        'supplier-analysis': {
+          title: '供应商分析 - 总览/排行',
+          desc: '从供应商视角看碳排、收资表现和数据质量。',
+          canvasTitle: '供应商分析总览',
+          canvasSub: '页面目标：支持识别高碳/低配合供应商'
+        },
+        'collection-board': {
+          title: '收资看板 - 总览',
+          desc: '管理视角查看收资任务进度、逾期、异常与供应商完成率。',
+          canvasTitle: '收资总览',
+          canvasSub: '页面目标：把收资任务做成可监控的闭环看板'
+        },
+        'shared-pool': {
+          title: '共享数据 - 数据池',
+          desc: '沉淀已共享的供应链碳数据资产，支持授权和复用。',
+          canvasTitle: '共享数据列表',
+          canvasSub: '页面目标：将共享行为沉淀为共享资产池'
+        },
+        'replace-analysis': {
+          title: '物料替代分析 - 模拟页',
+          desc: '比较不同物料/供应商/运输方案的碳排差异，支持决策模拟。',
+          canvasTitle: '替代方案模拟',
+          canvasSub: '页面目标：从结果分析走向替代决策'
+        }
+      };
+
+      const treeItems = document.querySelectorAll('.tree-item');
+      const pages = document.querySelectorAll('.page');
+      const pageTitle = document.getElementById('pageTitle');
+      const pageDesc = document.getElementById('pageDesc');
+      const canvasTitle = document.getElementById('canvasTitle');
+      const canvasSub = document.getElementById('canvasSub');
+
+      function switchPage(key) {
+        treeItems.forEach((item) => item.classList.toggle('is-active', item.dataset.page === key));
+        pages.forEach((page) => page.classList.toggle('is-active', page.id === `page-${key}`));
+        const meta = pageMeta[key];
+        if (meta) {
+          pageTitle.textContent = meta.title;
+          pageDesc.textContent = meta.desc;
+          canvasTitle.textContent = meta.canvasTitle;
+          canvasSub.textContent = meta.canvasSub;
+        }
+      }
+
+      treeItems.forEach((item) => {
+        item.addEventListener('click', () => switchPage(item.dataset.page));
+      });
+    </script>
+  </body>
+</html>
